@@ -46,3 +46,11 @@ app.*.map.json
 
 
 .agents/
+
+# mcp-tracker config (local, not versioned)
+.mcp-tracker.json
+.mcp-tracker.local.json
+
+# serena tooling (local, not versioned)
+.serena/
+
