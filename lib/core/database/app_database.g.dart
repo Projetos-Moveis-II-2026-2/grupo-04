@@ -1929,7 +1929,7 @@ class $ExerciseLibraryTableTable extends ExerciseLibraryTable
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'exercise_library_table';
+  static const String $name = 'exercise_library';
   @override
   VerificationContext validateIntegrity(
     Insertable<ExerciseLibrary> instance, {
