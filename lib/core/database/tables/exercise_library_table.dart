@@ -20,4 +20,9 @@ class ExerciseLibraryTable extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  /// Alinha o nome SQL local com a tabela `exercise_library` do Supabase
+  /// (sem o override, drift geraria `exercise_library_table`).
+  @override
+  String get tableName => 'exercise_library';
 }
