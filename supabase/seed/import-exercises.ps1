@@ -1,17 +1,22 @@
 # Gera supabase/seed/002_seed_exercises.sql a partir do exercises.json
 # (free-exercise-db). Idempotente: ON CONFLICT (external_id) DO NOTHING.
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
-$json = Get-Content (Join-Path $PSScriptRoot 'exercises.json') -Raw | ConvertFrom-Json
+# -Encoding UTF8 é obrigatório: o default do Windows PowerShell 5.1 (ANSI)
+# corrompe caracteres não-ASCII do JSON (ex.: em dash → mojibake).
+$json = Get-Content (Join-Path $PSScriptRoot 'exercises.json') -Raw -Encoding UTF8 |
+  ConvertFrom-Json
 
-function PgText([string]$s) {
+function PgText($s) {
+  # Sem cast [string] no parâmetro: ele transformaria $null em '' e
+  # campos ausentes virariam string vazia em vez de NULL.
   if ($null -eq $s) { return 'NULL' }
   return "'" + $s.Replace("'", "''") + "'"
 }
 
 function PgArray($values) {
-  if ($null -eq $values -or $values.Count -eq 0) { return 'NULL' }
+  if ($null -eq $values) { return 'NULL' }          # campo ausente
   $items = @($values) | ForEach-Object { "'" + $_.Replace("'", "''") + "'" }
+  # array vazio vira ARRAY[] (preserva a semântica de "lista vazia")
   return 'ARRAY[' + ($items -join ',') + ']::text[]'
 }
 
