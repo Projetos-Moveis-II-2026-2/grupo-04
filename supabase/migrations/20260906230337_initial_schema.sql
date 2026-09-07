@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- MIGRATION 001 — Olimpus (docs/PLANO_IMPLEMENTACAO.md §5.1)
 -- Ajustes de segurança sobre o SQL do plano, conforme guia do
 -- Supabase: policies de dono com TO authenticated (evita aplicar
@@ -89,9 +89,10 @@ CREATE TABLE water_intake (
 -- ── GRANTS: revogar defaults e conceder o mínimo ──────────────
 REVOKE ALL ON exercise_library FROM anon, authenticated;
 REVOKE ALL ON profiles, workout_templates, template_exercises,
-            workout_sessions, exercise_sets, water_intake FROM anon;
+            workout_sessions, exercise_sets, water_intake
+  FROM anon, authenticated;
 
-GRANT SELECT ON exercise_library TO anon;                       -- catálogo público
+GRANT SELECT ON exercise_library TO anon, authenticated;        -- catálogo público
 GRANT SELECT, INSERT, UPDATE, DELETE ON profiles TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON workout_templates TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON template_exercises TO authenticated;
