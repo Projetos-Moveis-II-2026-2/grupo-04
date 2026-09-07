@@ -4,6 +4,27 @@ App de acompanhamento de treino e hidratação — Flutter + Supabase (offline-f
 
 > ⚠️ README completo (setup, estrutura, comandos) é a issue #59 do backlog. Documento em construção.
 
+## Edge Functions (supabase/functions)
+
+Funções Deno deployadas no Supabase, com **JWT de usuário obrigatório** (`verify_jwt = true` no `supabase/config.toml` + `auth: ["user"]` no handler).
+
+```bash
+# Rodar local (precisa do stack local: supabase start)
+supabase functions serve hello-world
+
+# Testar localmente (Bearer = access_token de um usuário autenticado)
+curl -i -X POST 'http://127.0.0.1:54321/functions/v1/hello-world' \
+  -H 'apikey: <publishable_key>' \
+  -H "Authorization: Bearer <user_jwt>" \
+  --data '{"name":"Olimpus"}'
+# Sem Bearer → 401; com Bearer válido → 200
+
+# Deploy no remoto
+npx supabase@latest functions deploy hello-world
+```
+
+**Secrets** (server-side, nunca no código): `GEMINI_API_KEY` (IA — provedor Gemini Flash-Lite, free tier). Configurar com `supabase secrets set GEMINI_API_KEY=...`; dentro da função: `Deno.env.get("GEMINI_API_KEY")`. Lista sem expor valores: `supabase secrets list`.
+
 ## Documentos do projeto
 
 | Documento | Conteúdo |
