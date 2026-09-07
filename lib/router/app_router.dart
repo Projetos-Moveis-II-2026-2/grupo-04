@@ -1,52 +1,42 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:olimpus/core/providers.dart';
 
-/// Configuração de rotas do app (go_router).
-final GoRouter appRouter = GoRouter(
-  initialLocation: '/',
-  routes: [GoRoute(path: '/', builder: (context, state) => const _HomePage())],
-);
+import '../features/auth/presentation/pages/confirmation_pending_page.dart';
+import '../features/auth/presentation/pages/home_page.dart';
+import '../features/auth/presentation/pages/login_page.dart';
+import '../features/auth/presentation/pages/register_page.dart';
+import '../features/auth/presentation/providers/auth_providers.dart';
 
-class _HomePage extends ConsumerWidget {
-  const _HomePage();
+/// Configuração temporária de rotas para validar o fluxo de Auth.
+/// A infraestrutura global de redirecionamento (guardas avançadas)
+/// pertence à Issue #33.
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authStateProvider);
+  
+  return GoRouter(
+    initialLocation: '/',
+    redirect: (context, state) {
+      final user = authState.value;
+      final isLoggedIn = user != null && user.isEmailConfirmed;
+      final isAuthRoute = state.matchedLocation.startsWith('/login') ||
+          state.matchedLocation.startsWith('/register') ||
+          state.matchedLocation.startsWith('/confirmation');
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
-    final isDark =
-        themeMode == ThemeMode.dark ||
-        (themeMode == ThemeMode.system &&
-            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+      if (!isLoggedIn && !isAuthRoute) return '/login';
+      if (isLoggedIn && isAuthRoute) return '/';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Olimpus'),
-        actions: [
-          IconButton(
-            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-            tooltip: 'Alternar tema',
-            onPressed: () => ref.read(themeProvider.notifier).toggle(),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Olimpus'),
-            const SizedBox(height: 12),
-            Text('Modo de tema atual: ${themeMode.name}'),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-              label: const Text('Alternar Tema'),
-              onPressed: () => ref.read(themeProvider.notifier).toggle(),
-            ),
-          ],
+      return null;
+    },
+    routes: [
+      GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
+      GoRoute(
+        path: '/confirmation',
+        builder: (context, state) => ConfirmationPendingPage(
+          email: state.uri.queryParameters['email'] ?? '',
         ),
       ),
-    );
-  }
-}
+    ],
+  );
+});
