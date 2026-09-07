@@ -422,3 +422,9 @@ entrypoint = "./functions/hello-world/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/hello-world/*.html" ]
+
+[functions.suggest-load]
+enabled = true
+verify_jwt = true
+import_map = "./functions/suggest-load/deno.json"
+entrypoint = "./functions/suggest-load/index.ts"
