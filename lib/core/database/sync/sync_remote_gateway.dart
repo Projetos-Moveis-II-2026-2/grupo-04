@@ -15,8 +15,7 @@ abstract interface class SyncRemoteGateway {
 
 /// Implementação real sobre o client do supabase_flutter.
 class SupabaseSyncGateway implements SyncRemoteGateway {
-  SupabaseSyncGateway({SupabaseClient? client})
-    : _client = client ?? Supabase.instance.client;
+  SupabaseSyncGateway(this._client);
 
   final SupabaseClient _client;
 

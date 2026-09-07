@@ -25,7 +25,7 @@ void main() {
     client = _MockClient();
     functions = _MockFunctions();
     when(() => client.functions).thenReturn(functions);
-    datasource = SubstituteDatasource(client: client);
+    datasource = SubstituteDatasource(client);
   });
 
   // O datasource dá await no builder do rpc — o mock expõe .then que

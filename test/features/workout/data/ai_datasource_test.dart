@@ -20,7 +20,7 @@ void main() {
     client = _MockClient();
     functions = _MockFunctions();
     when(() => client.functions).thenReturn(functions);
-    datasource = AiDatasource(client: client);
+    datasource = AiDatasource(client);
   });
 
   test('parseia resposta JSON da função', () async {

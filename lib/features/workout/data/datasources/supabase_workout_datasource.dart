@@ -4,8 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Baixa as tabelas user-scoped do Supabase; a RLS filtra para as linhas
 /// do usuário autenticado (nenhum user_id explícito na query).
 class SupabaseCloudPullDataSource implements CloudPullDataSource {
-  SupabaseCloudPullDataSource({SupabaseClient? client})
-    : _client = client ?? Supabase.instance.client;
+  SupabaseCloudPullDataSource(this._client);
 
   final SupabaseClient _client;
 

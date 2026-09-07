@@ -1,28 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:olimpus/core/database/providers/database_providers.dart';
+import 'package:olimpus/core/providers.dart';
 import 'package:olimpus/core/database/sync/initial_sync_service.dart';
 import 'package:olimpus/core/database/sync/sync_queue_service.dart';
 import 'package:olimpus/core/database/sync/sync_remote_gateway.dart';
-import 'package:olimpus/core/network/connectivity_service.dart';
 import 'package:olimpus/features/workout/data/datasources/supabase_workout_datasource.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Estado de conectividade como provider (`Stream<bool>` → `AsyncValue<bool>`).
-final connectivityServiceProvider = Provider<ConnectivityService>((ref) {
-  final service = ConnectivityService();
-  ref.onDispose(service.dispose);
-  return service;
-});
-
-final isOnlineProvider = StreamProvider<bool>((ref) {
-  return ref.watch(connectivityServiceProvider).isOnlineStream;
-});
-
 final syncRemoteGatewayProvider = Provider<SyncRemoteGateway>((ref) {
-  return SupabaseSyncGateway();
+  return SupabaseSyncGateway(ref.watch(supabaseClientProvider));
 });
 
 final syncQueueServiceProvider = Provider<SyncQueueService>((ref) {
@@ -46,8 +34,8 @@ final syncQueueAutoProcessorProvider = Provider<void>((ref) {
     }
   }
 
-  ref.listen(isOnlineProvider, (_, next) => drainIfOnline(next.value));
-  drainIfOnline(ref.read(isOnlineProvider).value);
+  ref.listen(connectivityProvider, (_, next) => drainIfOnline(next.value));
+  drainIfOnline(ref.read(connectivityProvider).value);
 });
 
 /// Garante que o auto-processor existe enquanto o app está vivo.
@@ -58,13 +46,13 @@ final appLifecycleSyncBindingProvider = Provider<void>((ref) {
 // ── Pull inicial (#25) ──────────────────────────────────────────
 
 final cloudPullDataSourceProvider = Provider<CloudPullDataSource>((ref) {
-  return SupabaseCloudPullDataSource();
+  return SupabaseCloudPullDataSource(ref.watch(supabaseClientProvider));
 });
 
 final initialSyncServiceProvider = FutureProvider<InitialSyncService>((
   ref,
 ) async {
-  final prefs = await SharedPreferences.getInstance();
+  final prefs = ref.watch(sharedPreferencesProvider);
   return InitialSyncService(
     ref.watch(appDatabaseProvider),
     dataSource: ref.watch(cloudPullDataSourceProvider),
@@ -76,7 +64,7 @@ final initialSyncServiceProvider = FutureProvider<InitialSyncService>((
 /// no boot) e a cada evento `signedIn`. O provider de auth (#37) também
 /// pode disparar [initialSyncServiceProvider] diretamente.
 final authSyncBindingProvider = Provider<void>((ref) {
-  final client = Supabase.instance.client;
+  final client = ref.watch(supabaseClientProvider);
 
   Future<void> pullFor(Session? session) async {
     if (session?.user.id == null) return;
