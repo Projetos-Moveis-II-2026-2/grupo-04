@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_notifier.dart';
+import '../utils/auth_error_mapper.dart';
 import '../widgets/auth_text_field.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -40,10 +40,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Widget build(BuildContext context) {
     ref.listen(authNotifierProvider, (previous, next) {
       if (next is AsyncError) {
-        final error = next.error;
-        final message = error is AuthException
-            ? error.message
-            : 'Ocorreu um erro ao criar a conta';
+        final message = AuthErrorMapper.map(
+          next.error,
+          defaultMessage: 'Ocorreu um erro ao criar a conta. Tente novamente.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message)),
         );
