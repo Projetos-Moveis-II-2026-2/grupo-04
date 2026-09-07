@@ -5,6 +5,8 @@
 /// - [appDatabaseProvider]
 /// - [themeProvider] / [sharedPreferencesProvider]
 /// - [connectivityProvider] / [connectivityServiceProvider]
+library;
+
 export 'database/providers/database_providers.dart';
 export 'providers/connectivity_providers.dart';
 export 'providers/supabase_providers.dart';

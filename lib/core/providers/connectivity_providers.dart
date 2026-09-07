@@ -8,7 +8,7 @@ final connectivityServiceProvider = Provider<ConnectivityService>((ref) {
   return service;
 });
 
-/// Estado de rede como Stream<bool> → AsyncValue<bool>.
+/// Estado de rede como `Stream<bool>` → `AsyncValue<bool>`.
 final connectivityProvider = StreamProvider<bool>((ref) {
   return ref.watch(connectivityServiceProvider).isOnlineStream;
 });

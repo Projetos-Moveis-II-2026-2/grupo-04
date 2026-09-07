@@ -15,11 +15,10 @@ import 'package:olimpus/core/database/sync/sync_remote_gateway.dart';
 class SyncQueueService {
   SyncQueueService(
     this._db, {
-    required SyncRemoteGateway gateway, // ignore: prefer_initializing_formals
+    required this.gateway,
     void Function(Duration delay, Future<void> Function() retry)?
     retryScheduler,
-  }) : _gateway = gateway,
-       _retryScheduler = retryScheduler ?? _defaultScheduler;
+  }) : _retryScheduler = retryScheduler ?? _defaultScheduler;
 
   static const _maxRetries = 5;
 
@@ -28,7 +27,7 @@ class SyncQueueService {
   }
 
   final AppDatabase _db;
-  final SyncRemoteGateway _gateway;
+  final SyncRemoteGateway gateway;
   final void Function(Duration delay, Future<void> Function() retry)
   _retryScheduler;
   Future<void>? _inFlight;
@@ -78,9 +77,9 @@ class SyncQueueService {
     try {
       final payload = jsonDecode(entry.payload) as Map<String, dynamic>;
       if (entry.operation == 'delete') {
-        await _gateway.delete(entry.targetTable, entry.recordId);
+        await gateway.delete(entry.targetTable, entry.recordId);
       } else {
-        await _gateway.upsert(entry.targetTable, payload);
+        await gateway.upsert(entry.targetTable, payload);
       }
 
       await _markLocalSynced(entry);
