@@ -35,6 +35,7 @@ dependencies:
   drift: ^2.34.4
   sqlite3_flutter_libs: ^0.5.0
   path_provider: ^2.1.0
+  shared_preferences: ^2.5.0
 
   # Rede
   connectivity_plus: ^7.3.1

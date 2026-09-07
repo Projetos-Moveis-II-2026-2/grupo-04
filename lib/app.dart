@@ -9,8 +9,9 @@ class MainApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Mantém o dreno automático da SyncQueue vivo enquanto o app roda.
+    // Mantém o dreno automático da SyncQueue e o pull inicial (auth) vivos.
     ref.watch(appLifecycleSyncBindingProvider);
+    ref.watch(authSyncBindingProvider);
 
     return MaterialApp.router(
       title: 'Olimpus',
