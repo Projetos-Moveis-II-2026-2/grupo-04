@@ -73,6 +73,18 @@ void main() {
     expect(rows.single.retryCount, 0);
   });
 
+  test('operação delete chama gateway.delete e nunca gateway.upsert', () async {
+    await service.enqueue('exercise_sets', 'set-1', 'delete', {'id': 'set-1'});
+    when(() => gateway.delete(any(), any())).thenAnswer((_) async {});
+    when(() => gateway.upsert(any(), any())).thenAnswer((_) async {});
+
+    await service.processQueue();
+
+    verify(() => gateway.delete('exercise_sets', 'set-1')).called(1);
+    verifyNever(() => gateway.upsert(any(), any()));
+    expect(await db.select(db.syncQueue).get(), isEmpty);
+  });
+
   test('processQueue drena a fila em FIFO e marca synced localmente', () async {
     await insertLocalSet('set-1');
     await insertLocalSet('set-2');

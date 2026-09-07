@@ -77,11 +77,10 @@ class SyncQueueService {
   Future<bool> _processEntry(SyncQueueEntry entry) async {
     try {
       final payload = jsonDecode(entry.payload) as Map<String, dynamic>;
-      switch (entry.operation) {
-        case 'delete':
-          await _gateway.delete(entry.targetTable, entry.recordId);
-        case _:
-          await _gateway.upsert(entry.targetTable, payload);
+      if (entry.operation == 'delete') {
+        await _gateway.delete(entry.targetTable, entry.recordId);
+      } else {
+        await _gateway.upsert(entry.targetTable, payload);
       }
 
       await _markLocalSynced(entry);
@@ -90,6 +89,9 @@ class SyncQueueService {
       )..where((q) => q.id.equals(entry.id))).go();
       return true;
     } on Exception catch (error) {
+      // retryCount conta retries (a 1ª falha = retry 1). Com _maxRetries = 5,
+      // o item é abandonado na 6ª falha consecutiva, quando retryCount passa
+      // de 5 (pseudocódigo do plano: "se retryCount > 5, revisão manual").
       final retries = entry.retryCount + 1;
       if (retries > _maxRetries) {
         onGiveUp?.call(entry, error);
