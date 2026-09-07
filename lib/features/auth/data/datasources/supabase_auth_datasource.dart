@@ -27,7 +27,11 @@ class SupabaseAuthDatasource {
   Future<void> signOut() => _auth.signOut();
 
   Future<void> resendSignUpConfirmation(String email) {
-    return _auth.resend(type: OtpType.signup, email: email);
+    return _auth.resend(
+      type: OtpType.signup,
+      email: email.trim(),
+      emailRedirectTo: 'olimpus://auth/callback',
+    );
   }
 
   Stream<AuthState> onAuthStateChange() => _auth.onAuthStateChange;

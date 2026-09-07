@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/auth_notifier.dart';
+import '../utils/auth_error_mapper.dart';
 
 class ConfirmationPendingPage extends ConsumerStatefulWidget {
   const ConfirmationPendingPage({super.key, required this.email});
@@ -55,8 +56,12 @@ class _ConfirmationPendingPageState
       }
     } catch (e) {
       if (mounted) {
+        final message = AuthErrorMapper.map(
+          e,
+          defaultMessage: 'Erro ao reenviar e-mail. Tente novamente mais tarde.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao reenviar e-mail.')),
+          SnackBar(content: Text(message)),
         );
       }
     }
