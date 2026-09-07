@@ -51,8 +51,7 @@ class SubstituteRateLimited implements Exception {
 /// diferente). Camada 2 (apenas se a 1ª vier vazia): Edge Function
 /// `suggest-substitute` via LLM, com rate limit compartilhado.
 class SubstituteDatasource {
-  SubstituteDatasource({SupabaseClient? client})
-    : _client = client ?? Supabase.instance.client;
+  SubstituteDatasource(this._client);
 
   final SupabaseClient _client;
 

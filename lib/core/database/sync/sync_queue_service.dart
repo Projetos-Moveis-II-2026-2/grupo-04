@@ -15,10 +15,10 @@ import 'package:olimpus/core/database/sync/sync_remote_gateway.dart';
 class SyncQueueService {
   SyncQueueService(
     this._db, {
-    SyncRemoteGateway? gateway,
+    required SyncRemoteGateway gateway, // ignore: prefer_initializing_formals
     void Function(Duration delay, Future<void> Function() retry)?
     retryScheduler,
-  }) : _gateway = gateway ?? SupabaseSyncGateway(),
+  }) : _gateway = gateway,
        _retryScheduler = retryScheduler ?? _defaultScheduler;
 
   static const _maxRetries = 5;

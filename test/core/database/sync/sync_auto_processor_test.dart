@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:olimpus/core/database/app_database.dart';
-import 'package:olimpus/core/database/providers/database_providers.dart';
 import 'package:olimpus/core/database/sync/sync_providers.dart';
+import 'package:olimpus/core/providers.dart';
 import 'package:olimpus/core/database/sync/sync_remote_gateway.dart';
 
 class _MockGateway extends Mock implements SyncRemoteGateway {}
@@ -24,7 +24,7 @@ void main() {
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
         syncRemoteGatewayProvider.overrideWithValue(gateway),
-        isOnlineProvider.overrideWith((ref) => Stream.value(true)),
+        connectivityProvider.overrideWith((ref) => Stream.value(true)),
       ],
     );
     addTearDown(container.dispose);
@@ -63,7 +63,7 @@ void main() {
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
         syncRemoteGatewayProvider.overrideWithValue(gateway),
-        isOnlineProvider.overrideWith((ref) => Stream.value(false)),
+        connectivityProvider.overrideWith((ref) => Stream.value(false)),
       ],
     );
     addTearDown(container.dispose);

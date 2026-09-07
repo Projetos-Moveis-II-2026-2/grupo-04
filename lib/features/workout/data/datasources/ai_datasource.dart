@@ -37,8 +37,7 @@ class SuggestionRateLimited implements Exception {
 /// Invoca a Edge Function `suggest-load` (JWT do usuário anexado
 /// automaticamente pela sessão atual).
 class AiDatasource {
-  AiDatasource({SupabaseClient? client})
-    : _client = client ?? Supabase.instance.client;
+  AiDatasource(this._client);
 
   final SupabaseClient _client;
 
