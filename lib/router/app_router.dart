@@ -22,6 +22,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register') ||
           state.matchedLocation.startsWith('/confirmation') ||
+          state.matchedLocation.startsWith('/callback') ||
           state.matchedLocation.startsWith('/auth/callback') ||
           state.matchedLocation.startsWith('/reset-password');
 
@@ -39,6 +40,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ConfirmationPendingPage(
           email: state.uri.queryParameters['email'] ?? '',
         ),
+      ),
+      GoRoute(
+        path: '/callback',
+        redirect: (context, state) => '/',
       ),
       GoRoute(
         path: '/auth/callback',
