@@ -8,7 +8,9 @@ import '../../domain/repositories/i_auth_repository.dart';
 import '../../domain/usecases/log_in.dart';
 import '../../domain/usecases/log_out.dart';
 import '../../domain/usecases/resend_confirmation.dart';
+import '../../domain/usecases/reset_password.dart';
 import '../../domain/usecases/sign_up.dart';
+import '../../domain/usecases/update_password.dart';
 
 // ── Datasource ──
 final authDatasourceProvider = Provider<SupabaseAuthDatasource>((ref) {
@@ -35,6 +37,14 @@ final logOutUseCaseProvider = Provider<LogOut>((ref) {
 
 final resendConfirmationUseCaseProvider = Provider<ResendConfirmation>((ref) {
   return ResendConfirmation(ref.watch(authRepositoryProvider));
+});
+
+final resetPasswordUseCaseProvider = Provider<ResetPassword>((ref) {
+  return ResetPassword(ref.watch(authRepositoryProvider));
+});
+
+final updatePasswordUseCaseProvider = Provider<UpdatePassword>((ref) {
+  return UpdatePassword(ref.watch(authRepositoryProvider));
 });
 
 // ── Auth State Stream ──

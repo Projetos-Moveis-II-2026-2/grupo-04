@@ -46,6 +46,23 @@ class AuthNotifier extends Notifier<AsyncValue<AppUser?>> {
   Future<void> resendConfirmation(String email) async {
     await ref.read(resendConfirmationUseCaseProvider).call(email);
   }
+
+  Future<void> sendPasswordReset(String email) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(resetPasswordUseCaseProvider).call(email);
+      return state.value; // Mantém user atual (ou null)
+    });
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(updatePasswordUseCaseProvider).call(newPassword);
+      await ref.read(logOutUseCaseProvider).call(); // Força o logout real no backend
+      return null; // Força logout lógico no estado
+    });
+  }
 }
 
 final authNotifierProvider =

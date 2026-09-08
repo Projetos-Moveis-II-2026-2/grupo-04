@@ -24,6 +24,9 @@ abstract final class AuthErrorMapper {
       if (msg.contains('invalid email')) {
         return 'O formato do email é inválido.';
       }
+      if (msg.contains('same_password') || msg.contains('new password should be different')) {
+        return 'A nova senha deve ser diferente da senha atual.';
+      }
 
       return error.message;
     }
