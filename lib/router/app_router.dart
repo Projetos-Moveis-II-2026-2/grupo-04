@@ -5,7 +5,8 @@ import '../features/auth/presentation/pages/confirmation_pending_page.dart';
 import '../features/auth/presentation/pages/home_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
-import '../features/auth/presentation/pages/reset_password_placeholder_page.dart';
+import '../features/auth/presentation/pages/forgot_password_page.dart';
+import '../features/auth/presentation/pages/reset_password_page.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
 
 /// Configuração temporária de rotas para validar o fluxo de Auth.
@@ -24,10 +25,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation.startsWith('/confirmation') ||
           state.matchedLocation.startsWith('/callback') ||
           state.matchedLocation.startsWith('/auth/callback') ||
+          state.matchedLocation.startsWith('/forgot-password') ||
           state.matchedLocation.startsWith('/reset-password');
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
-      if (isLoggedIn && isAuthRoute) return '/';
+      
+      // Se estiver logado, não permitir rotas de auth, EXCETO o reset-password
+      // (pois o link de recovery faz login automático do usuário nos bastidores)
+      if (isLoggedIn && isAuthRoute && !state.matchedLocation.startsWith('/reset-password')) {
+        return '/';
+      }
 
       return null;
     },
@@ -50,8 +57,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: (context, state) => '/',
       ),
       GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
         path: '/reset-password',
-        builder: (context, state) => const ResetPasswordPlaceholderPage(),
+        builder: (context, state) => const ResetPasswordPage(),
       ),
     ],
   );

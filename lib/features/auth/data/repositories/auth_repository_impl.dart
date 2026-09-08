@@ -49,6 +49,19 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
+  Future<void> sendPasswordResetEmail(String email) {
+    return _datasource.resetPasswordForEmail(email);
+  }
+
+  @override
+  Future<void> updatePassword(String newPassword) async {
+    final response = await _datasource.updateUser(password: newPassword);
+    if (response.user == null) {
+      throw const AuthException('Failed to update password');
+    }
+  }
+
+  @override
   Stream<AppUser?> authStateChanges() {
     return _datasource.onAuthStateChange().map(
       (event) =>

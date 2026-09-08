@@ -34,6 +34,17 @@ class SupabaseAuthDatasource {
     );
   }
 
+  Future<void> resetPasswordForEmail(String email) {
+    return _auth.resetPasswordForEmail(
+      email.trim(),
+      redirectTo: 'olimpus://auth/reset-password',
+    );
+  }
+
+  Future<UserResponse> updateUser({required String password}) {
+    return _auth.updateUser(UserAttributes(password: password));
+  }
+
   Stream<AuthState> onAuthStateChange() => _auth.onAuthStateChange;
 
   User? get currentUser => _auth.currentUser;
