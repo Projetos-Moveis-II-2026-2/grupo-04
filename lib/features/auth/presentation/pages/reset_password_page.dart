@@ -28,9 +28,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    ref.read(authNotifierProvider.notifier).updatePassword(
-          _passwordController.text,
-        );
+    ref
+        .read(authNotifierProvider.notifier)
+        .updatePassword(_passwordController.text);
   }
 
   @override
@@ -41,9 +41,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
           next.error,
           defaultMessage: 'Erro ao redefinir a senha. Tente novamente.',
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       } else if (next is AsyncData && !next.isLoading && next.value == null) {
         // Senha atualizada, user setado como null → redirecionar ao login
         ScaffoldMessenger.of(context).showSnackBar(
@@ -88,10 +87,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                   controller: _confirmController,
                   label: 'Confirmar Nova Senha',
                   isPassword: true,
-                  validator: (val) => Validators.confirmPassword(
-                    val,
-                    _passwordController.text,
-                  ),
+                  validator: (val) =>
+                      Validators.confirmPassword(val, _passwordController.text),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(

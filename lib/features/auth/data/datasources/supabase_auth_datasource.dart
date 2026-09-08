@@ -45,6 +45,20 @@ class SupabaseAuthDatasource {
     return _auth.updateUser(UserAttributes(password: password));
   }
 
+  /// Chama a Edge Function admin que deleta o auth user via service_role.
+  Future<void> deleteAccount() async {
+    final response = await _client.functions.invoke(
+      'delete-account',
+      method: HttpMethod.post,
+    );
+    if (response.status != 200) {
+      final body = response.data as Map<String, dynamic>?;
+      throw AuthException(
+        body?['error'] as String? ?? 'Failed to delete account',
+      );
+    }
+  }
+
   Stream<AuthState> onAuthStateChange() => _auth.onAuthStateChange;
 
   User? get currentUser => _auth.currentUser;

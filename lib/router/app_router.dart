@@ -7,6 +7,7 @@ import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/reset_password_page.dart';
+import '../features/auth/presentation/pages/delete_account_page.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
 
 /// Configuração temporária de rotas para validar o fluxo de Auth.
@@ -14,13 +15,14 @@ import '../features/auth/presentation/providers/auth_providers.dart';
 /// pertence à Issue #33.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
-  
+
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
       final user = authState.value;
       final isLoggedIn = user != null && user.isEmailConfirmed;
-      final isAuthRoute = state.matchedLocation.startsWith('/login') ||
+      final isAuthRoute =
+          state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register') ||
           state.matchedLocation.startsWith('/confirmation') ||
           state.matchedLocation.startsWith('/callback') ||
@@ -29,10 +31,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation.startsWith('/reset-password');
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
-      
+
       // Se estiver logado, não permitir rotas de auth, EXCETO o reset-password
       // (pois o link de recovery faz login automático do usuário nos bastidores)
-      if (isLoggedIn && isAuthRoute && !state.matchedLocation.startsWith('/reset-password')) {
+      if (isLoggedIn &&
+          isAuthRoute &&
+          !state.matchedLocation.startsWith('/reset-password')) {
         return '/';
       }
 
@@ -41,21 +45,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', builder: (context, state) => const HomePage()),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-      GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterPage(),
+      ),
       GoRoute(
         path: '/confirmation',
         builder: (context, state) => ConfirmationPendingPage(
           email: state.uri.queryParameters['email'] ?? '',
         ),
       ),
-      GoRoute(
-        path: '/callback',
-        redirect: (context, state) => '/',
-      ),
-      GoRoute(
-        path: '/auth/callback',
-        redirect: (context, state) => '/',
-      ),
+      GoRoute(path: '/callback', redirect: (context, state) => '/'),
+      GoRoute(path: '/auth/callback', redirect: (context, state) => '/'),
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordPage(),
@@ -63,6 +64,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reset-password',
         builder: (context, state) => const ResetPasswordPage(),
+      ),
+      GoRoute(
+        path: '/delete-account',
+        builder: (context, state) => const DeleteAccountPage(),
       ),
     ],
   );

@@ -2,7 +2,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Utilitário para mapear erros do Supabase Auth para mensagens em português amigáveis.
 abstract final class AuthErrorMapper {
-  static String map(Object? error, {String defaultMessage = 'Ocorreu um erro. Tente novamente.'}) {
+  static String map(
+    Object? error, {
+    String defaultMessage = 'Ocorreu um erro. Tente novamente.',
+  }) {
     if (error is AuthException) {
       final msg = error.message.toLowerCase();
 
@@ -24,7 +27,8 @@ abstract final class AuthErrorMapper {
       if (msg.contains('invalid email')) {
         return 'O formato do email é inválido.';
       }
-      if (msg.contains('same_password') || msg.contains('new password should be different')) {
+      if (msg.contains('same_password') ||
+          msg.contains('new password should be different')) {
         return 'A nova senha deve ser diferente da senha atual.';
       }
 

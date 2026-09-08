@@ -27,9 +27,9 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    ref.read(authNotifierProvider.notifier).sendPasswordReset(
-          _emailController.text.trim(),
-        );
+    ref
+        .read(authNotifierProvider.notifier)
+        .sendPasswordReset(_emailController.text.trim());
   }
 
   @override
@@ -40,9 +40,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
           next.error,
           defaultMessage: 'Ocorreu um erro. Tente novamente.',
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       } else if (next is AsyncData && !next.isLoading && !_emailSent) {
         // O reset email foi disparado com sucesso
         setState(() => _emailSent = true);
@@ -67,8 +66,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.mark_email_read, size: 64,
-            color: Theme.of(context).colorScheme.primary),
+        Icon(
+          Icons.mark_email_read,
+          size: 64,
+          color: Theme.of(context).colorScheme.primary,
+        ),
         const SizedBox(height: 24),
         const Text(
           'Se o email estiver cadastrado, você receberá '

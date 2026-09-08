@@ -28,7 +28,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    ref.read(authNotifierProvider.notifier).signIn(
+    ref
+        .read(authNotifierProvider.notifier)
+        .signIn(
           email: _emailController.text,
           password: _passwordController.text,
         );
@@ -42,9 +44,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           next.error,
           defaultMessage: 'Ocorreu um erro ao fazer login. Tente novamente.',
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       }
     });
 
