@@ -64,6 +64,12 @@ class HomePage extends ConsumerWidget {
               ),
               onPressed: () => context.push('/delete-account'),
             ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.fitness_center),
+              label: const Text('Biblioteca de Exercícios'),
+              onPressed: () => context.push('/exercises'),
+            ),
           ],
         ),
       ),

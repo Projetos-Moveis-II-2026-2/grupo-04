@@ -10,6 +10,9 @@ import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/reset_password_page.dart';
 import '../features/auth/presentation/pages/delete_account_page.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
+import '../features/exercise/presentation/pages/exercise_library_page.dart';
+import '../features/exercise/presentation/pages/exercise_details_page.dart';
+import '../features/exercise/domain/entities/exercise.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final routerNotifier = RouterNotifier(ref);
@@ -71,6 +74,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/delete-account',
         builder: (context, state) => const DeleteAccountPage(),
+      ),
+      GoRoute(
+        path: '/exercises',
+        builder: (context, state) => const ExerciseLibraryPage(),
+      ),
+      GoRoute(
+        path: '/exercises/details',
+        builder: (context, state) {
+          final exercise = state.extra as Exercise;
+          return ExerciseDetailsPage(exercise: exercise);
+        },
       ),
     ],
   );
