@@ -30,7 +30,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    ref.read(authNotifierProvider.notifier).signUp(
+    ref
+        .read(authNotifierProvider.notifier)
+        .signUp(
           email: _emailController.text,
           password: _passwordController.text,
         );
@@ -44,10 +46,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           next.error,
           defaultMessage: 'Ocorreu um erro ao criar a conta. Tente novamente.',
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
-      } else if (next is AsyncData && next.value != null && !next.value!.isEmailConfirmed) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      } else if (next is AsyncData &&
+          next.value != null &&
+          !next.value!.isEmailConfirmed) {
         // Sucesso no signup, e-mail precisa de confirmação
         context.pushReplacement('/confirmation?email=${_emailController.text}');
       }
@@ -85,10 +88,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   controller: _confirmController,
                   label: 'Confirmar Senha',
                   isPassword: true,
-                  validator: (val) => Validators.confirmPassword(
-                    val,
-                    _passwordController.text,
-                  ),
+                  validator: (val) =>
+                      Validators.confirmPassword(val, _passwordController.text),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(

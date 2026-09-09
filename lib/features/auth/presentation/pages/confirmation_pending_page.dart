@@ -47,7 +47,9 @@ class _ConfirmationPendingPageState
 
   Future<void> _resend() async {
     try {
-      await ref.read(authNotifierProvider.notifier).resendConfirmation(widget.email);
+      await ref
+          .read(authNotifierProvider.notifier)
+          .resendConfirmation(widget.email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('E-mail reenviado com sucesso!')),
@@ -58,11 +60,11 @@ class _ConfirmationPendingPageState
       if (mounted) {
         final message = AuthErrorMapper.map(
           e,
-          defaultMessage: 'Erro ao reenviar e-mail. Tente novamente mais tarde.',
+          defaultMessage:
+              'Erro ao reenviar e-mail. Tente novamente mais tarde.',
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }
