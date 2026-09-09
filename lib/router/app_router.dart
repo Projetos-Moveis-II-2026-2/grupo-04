@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,16 +11,14 @@ import '../features/auth/presentation/pages/reset_password_page.dart';
 import '../features/auth/presentation/pages/delete_account_page.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
 
-/// Configuração temporária de rotas para validar o fluxo de Auth.
-/// A infraestrutura global de redirecionamento (guardas avançadas)
-/// pertence à Issue #33.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final routerNotifier = RouterNotifier(ref);
 
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: routerNotifier,
     redirect: (context, state) {
-      final user = authState.value;
+      final user = ref.read(authStateProvider).value;
       final isLoggedIn = user != null && user.isEmailConfirmed;
       final isAuthRoute =
           state.matchedLocation.startsWith('/login') ||
@@ -28,15 +27,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation.startsWith('/callback') ||
           state.matchedLocation.startsWith('/auth/callback') ||
           state.matchedLocation.startsWith('/forgot-password') ||
-          state.matchedLocation.startsWith('/reset-password');
+          state.matchedLocation.startsWith('/reset-password') ||
+          state.matchedLocation.startsWith('/auth/reset-password');
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
 
-      // Se estiver logado, não permitir rotas de auth, EXCETO o reset-password
-      // (pois o link de recovery faz login automático do usuário nos bastidores)
       if (isLoggedIn &&
           isAuthRoute &&
-          !state.matchedLocation.startsWith('/reset-password')) {
+          !state.matchedLocation.startsWith('/reset-password') &&
+          !state.matchedLocation.startsWith('/auth/reset-password')) {
         return '/';
       }
 
@@ -66,9 +65,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ResetPasswordPage(),
       ),
       GoRoute(
+        path: '/auth/reset-password',
+        builder: (context, state) => const ResetPasswordPage(),
+      ),
+      GoRoute(
         path: '/delete-account',
         builder: (context, state) => const DeleteAccountPage(),
       ),
     ],
   );
 });
+
+class RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+  RouterNotifier(this._ref) {
+    _ref.listen(authStateProvider, (_, _) {
+      notifyListeners();
+    });
+  }
+}
