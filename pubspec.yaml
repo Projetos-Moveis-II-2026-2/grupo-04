@@ -1,19 +1,75 @@
 name: olimpus
-description: "A new Flutter project."
+description: "App de saúde e fitness: treinos de musculação + hidratação"
 publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.13.0
+  flutter: ^3.44.0
 
 dependencies:
   flutter:
     sdk: flutter
 
+  # Estado + DI (Riverpod é o container de DI — sem get_it)
+  flutter_riverpod: ^3.0.0
+  riverpod_annotation: ^4.0.0
+
+  # Navegação
+  go_router: ^14.0.0
+
+  # Backend
+  supabase_flutter: ^2.8.0
+
+  # HTTP
+  dio: ^5.7.0
+
+  # Serialização
+  json_annotation: ^4.9.0
+  freezed_annotation: ^3.1.0
+
+  # Gráficos
+  fl_chart: ^1.2.0
+
+  # Offline database
+  drift: ^2.34.4
+  sqlite3_flutter_libs: ^0.5.0
+  path_provider: ^2.1.0
+  shared_preferences: ^2.5.0
+
+  # Rede
+  connectivity_plus: ^7.3.1
+
+  # Notificações
+  flutter_local_notifications: ^22.3.0
+  permission_handler: ^13.0.1
+  flutter_timezone: ^5.1.0
+  timezone: ^0.11.0
+
+  # Cache de imagens
+  cached_network_image: ^3.4.1
+
+  # Utilitários
+  intl: ^0.19.0
+  equatable: ^2.0.0
+  shimmer: ^3.0.0
+  path: ^1.9.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  build_runner: ^2.4.0
+  json_serializable: ^6.8.0
+  freezed: ^4.0.1
+  riverpod_generator: ^4.0.0
+  riverpod_lint: ^3.1.0
+  drift_dev: ^2.34.4
+  mocktail: ^1.0.0
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/data/
+    # - assets/gifs/  # Removido para evitar inchar o tamanho do instalador
