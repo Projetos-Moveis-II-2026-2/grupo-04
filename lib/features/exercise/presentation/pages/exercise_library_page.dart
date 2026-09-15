@@ -92,7 +92,7 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
                     return ExerciseCard(
                       exercise: exercise,
                       onTap: () {
-                        context.push('/exercises/details', extra: exercise);
+                        context.push('/exercises/${exercise.id}', extra: exercise);
                       },
                     );
                   },
