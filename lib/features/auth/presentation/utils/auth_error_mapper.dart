@@ -31,6 +31,10 @@ abstract final class AuthErrorMapper {
           msg.contains('new password should be different')) {
         return 'A nova senha deve ser diferente da senha atual.';
       }
+      if (msg.contains('failed to delete account') ||
+          msg.contains('delete-account')) {
+        return 'Não foi possível excluir a conta. Tente novamente mais tarde.';
+      }
 
       return error.message;
     }

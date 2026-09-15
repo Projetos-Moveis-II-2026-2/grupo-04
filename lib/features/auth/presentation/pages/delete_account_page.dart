@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../domain/entities/app_user.dart';
 import '../providers/auth_notifier.dart';
 import '../providers/auth_providers.dart';
+import '../utils/auth_error_mapper.dart';
 
 class DeleteAccountPage extends ConsumerStatefulWidget {
   const DeleteAccountPage({super.key});
@@ -77,9 +78,13 @@ class _DeleteAccountPageState extends ConsumerState<DeleteAccountPage> {
         context.go('/login');
       }
       if (next is AsyncError) {
+        final message = AuthErrorMapper.map(
+          next.error,
+          defaultMessage: 'Não foi possível excluir a conta. Tente novamente.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro: ${next.error}'),
+            content: Text(message),
             backgroundColor: colorScheme.error,
           ),
         );
