@@ -11,6 +11,9 @@ export default {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Limpa registros órfãos em ai_rate_limits (sem FK, não cascateiam)
+    await admin.from("ai_rate_limits").delete().eq("user_id", userId);
+
     const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) {
       console.error("delete-account failed:", error.message);
