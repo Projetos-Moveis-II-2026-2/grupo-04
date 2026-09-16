@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 
 import 'package:go_router/go_router.dart';
+import 'package:olimpus/core/widgets/app_error_widget.dart';
 import '../providers/exercise_providers.dart';
 import '../widgets/exercise_card.dart';
 import '../widgets/muscle_group_filter.dart';
@@ -99,8 +100,13 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text('Erro ao carregar: $error'),
+              error: (error, stack) => AppErrorWidget(
+                error: error,
+                stackTrace: stack,
+                onRetry: () {
+                  ref.read(exerciseRepositoryProvider).syncExercises();
+                  ref.invalidate(filteredExercisesProvider);
+                },
               ),
             ),
           ),
