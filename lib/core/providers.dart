@@ -5,9 +5,11 @@
 /// - [appDatabaseProvider]
 /// - [themeProvider] / [sharedPreferencesProvider]
 /// - [connectivityProvider] / [connectivityServiceProvider]
+/// - [dioClientProvider]
 library;
 
 export 'database/providers/database_providers.dart';
 export 'providers/connectivity_providers.dart';
+export 'providers/dio_providers.dart';
 export 'providers/supabase_providers.dart';
 export 'providers/theme_provider.dart';
