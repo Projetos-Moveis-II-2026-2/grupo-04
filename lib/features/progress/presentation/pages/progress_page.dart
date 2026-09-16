@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 /// Tela inicial da aba de Progresso (placeholder para o stream de evolução/gamificação).
 class ProgressPage extends StatelessWidget {
@@ -33,6 +34,12 @@ class ProgressPage extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.tonalIcon(
+                icon: const Icon(Icons.water_drop_rounded),
+                label: const Text('Ver Consumo de Água'),
+                onPressed: () => context.push('/water'),
               ),
             ],
           ),

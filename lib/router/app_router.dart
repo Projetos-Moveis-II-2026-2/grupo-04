@@ -15,6 +15,7 @@ import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/exercise/presentation/pages/exercise_details_page.dart';
 import '../features/exercise/presentation/pages/exercise_library_page.dart';
 import '../features/progress/presentation/pages/progress_page.dart';
+import '../features/water/presentation/pages/water_history_page.dart';
 import '../features/workout/presentation/pages/workout_list_page.dart';
 import 'scaffold_with_nav_bar.dart';
 
@@ -197,6 +198,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/delete-account',
         builder: (context, state) => const DeleteAccountPage(),
+      ),
+      GoRoute(
+        path: '/water',
+        builder: (context, state) => const WaterHistoryPage(),
       ),
     ],
   );

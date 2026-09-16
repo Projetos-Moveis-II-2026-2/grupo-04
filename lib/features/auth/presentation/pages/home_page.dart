@@ -116,6 +116,14 @@ class HomePage extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             _DashboardActionCard(
+              icon: Icons.water_drop_rounded,
+              title: 'Hidratação',
+              subtitle: 'Acompanhe seu consumo e histórico diário',
+              color: const Color(0xFF0288D1),
+              onTap: () => context.push('/water'),
+            ),
+            const SizedBox(height: 12),
+            _DashboardActionCard(
               icon: Icons.bar_chart,
               title: 'Minha Evolução',
               subtitle: 'Histórico de cargas, volume e metas',
