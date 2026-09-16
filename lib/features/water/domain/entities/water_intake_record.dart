@@ -20,8 +20,28 @@ class WaterIntakeRecord extends Equatable {
   final String date;
   final bool synced;
 
-  /// Retorna o horário local do registro.
-  DateTime get localRecordedAt => recordedAt.toLocal();
+  /// Retorna o horário local do registro, garantindo correspondência com a data do registro.
+  DateTime get localRecordedAt {
+    final local = recordedAt.toLocal();
+    final localStr =
+        '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+    if (date.isNotEmpty && date != localStr) {
+      try {
+        final parts = date.split('-').map(int.parse).toList();
+        if (parts.length == 3) {
+          return DateTime(
+            parts[0],
+            parts[1],
+            parts[2],
+            recordedAt.hour,
+            recordedAt.minute,
+            recordedAt.second,
+          );
+        }
+      } catch (_) {}
+    }
+    return local;
+  }
 
   @override
   List<Object?> get props => [

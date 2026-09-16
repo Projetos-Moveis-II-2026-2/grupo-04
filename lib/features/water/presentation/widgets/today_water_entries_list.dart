@@ -88,7 +88,7 @@ class TodayWaterEntriesList extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: entries.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final entry = entries[index];
             final formattedTime = timeFormatter.format(entry.localRecordedAt);

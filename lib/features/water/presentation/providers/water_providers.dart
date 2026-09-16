@@ -56,9 +56,33 @@ class DailyWaterGoalNotifier extends Notifier<int> {
     final user = ref.watch(currentUserProvider);
     final userKey =
         user != null ? '${_kDailyWaterGoalKey}_${user.id}' : _kDailyWaterGoalKey;
+
+    if (user != null) {
+      _fetchRemoteGoal(user.id);
+    }
+
     return prefs.getInt(userKey) ??
         prefs.getInt(_kDailyWaterGoalKey) ??
         2000;
+  }
+
+  Future<void> _fetchRemoteGoal(String userId) async {
+    try {
+      final client = ref.read(supabaseClientProvider);
+      final data = await client
+          .from('profiles')
+          .select('daily_water_goal_ml')
+          .eq('id', userId)
+          .maybeSingle();
+      if (data != null && data['daily_water_goal_ml'] != null) {
+        final remoteGoal = data['daily_water_goal_ml'] as int;
+        final prefs = ref.read(sharedPreferencesProvider);
+        await prefs.setInt('${_kDailyWaterGoalKey}_$userId', remoteGoal);
+        if (state != remoteGoal) {
+          state = remoteGoal;
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> setGoal(int goalMl) async {

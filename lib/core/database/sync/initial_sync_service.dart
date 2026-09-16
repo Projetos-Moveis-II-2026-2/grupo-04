@@ -52,8 +52,11 @@ class InitialSyncService {
   final CloudPullDataSource dataSource;
   final InitialPullStateStore stateStore;
 
-  Future<void> pullInitial() async {
-    if (await stateStore.hasPulled()) return;
+  Future<void> pullInitial({bool force = false}) async {
+    if (!force && await stateStore.hasPulled()) {
+      final hasLocalData = await _hasLocalUserData();
+      if (hasLocalData) return;
+    }
     final snapshot = await dataSource.fetchAll();
     await _db.transaction(() async {
       await _applyTemplates(snapshot.workoutTemplates);
@@ -62,6 +65,15 @@ class InitialSyncService {
       await _applyWater(snapshot.waterIntake);
     });
     await stateStore.markPulled();
+  }
+
+  Future<bool> _hasLocalUserData() async {
+    final w = await (_db.select(_db.waterIntake)..limit(1)).get();
+    if (w.isNotEmpty) return true;
+    final s = await (_db.select(_db.workoutSessions)..limit(1)).get();
+    if (s.isNotEmpty) return true;
+    final t = await (_db.select(_db.workoutTemplates)..limit(1)).get();
+    return t.isNotEmpty;
   }
 
   Future<void> _applyTemplates(List<Map<String, dynamic>> rows) async {
@@ -193,7 +205,13 @@ class InitialSyncService {
       final recordedAt = DateTime.parse(row['recorded_at'] as String);
       final existing = await (_db.select(
         _db.waterIntake,
-      )..where((t) => t.remoteId.equals(remoteId))).getSingleOrNull();
+      )..where((t) => t.remoteId.equals(remoteId) | t.id.equals(remoteId))).getSingleOrNull();
+
+      final localRecordedAt = recordedAt.toLocal();
+      final localDateStr =
+          '${localRecordedAt.year.toString().padLeft(4, '0')}-${localRecordedAt.month.toString().padLeft(2, '0')}-${localRecordedAt.day.toString().padLeft(2, '0')}';
+
+      final entryDate = (row['date'] as String?) ?? localDateStr;
 
       if (existing == null) {
         await _db
@@ -204,22 +222,22 @@ class InitialSyncService {
                 remoteId: Value(remoteId),
                 userId: row['user_id'] as String,
                 amountMl: row['amount_ml'] as int,
-                recordedAt: recordedAt,
-                date:
-                    row['date'] as String? ??
-                    recordedAt.toIso8601String().substring(0, 10),
+                recordedAt: localRecordedAt,
+                date: entryDate,
                 synced: const Value(true),
-                updatedAt: remoteUpdated,
+                updatedAt: remoteUpdated.toLocal(),
               ),
             );
       } else if (remoteUpdated.isAfter(existing.updatedAt)) {
         await (_db.update(
           _db.waterIntake,
-        )..where((t) => t.remoteId.equals(remoteId))).write(
+        )..where((t) => t.id.equals(existing.id))).write(
           WaterIntakeCompanion(
+            remoteId: Value(remoteId),
             amountMl: Value(row['amount_ml'] as int),
+            date: Value(entryDate),
             synced: const Value(true),
-            updatedAt: Value(remoteUpdated),
+            updatedAt: Value(remoteUpdated.toLocal()),
           ),
         );
       }

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olimpus/core/database/app_database.dart';
@@ -203,6 +204,29 @@ void main() {
       expect(queued.first.operation, 'upsert');
     });
 
+    test('addWaterIntake drena para o gateway e marca synced', () async {
+      final repo = WaterRepositoryImpl(
+        db: db,
+        syncQueue: syncQueue,
+      );
+
+      const userId = 'user-sync-drain';
+      final record = await repo.addWaterIntake(
+        userId: userId,
+        amountMl: 500,
+      );
+
+      await syncQueue.processQueue();
+
+      expect(gateway.upserts, hasLength(1));
+      expect(gateway.upserts.single['table'], 'water_intake');
+      expect(gateway.upserts.single['id'], record.id);
+      expect(gateway.upserts.single['amount_ml'], 500);
+
+      final rows = await db.select(db.waterIntake).get();
+      expect(rows.single.synced, isTrue);
+    });
+
     test('deleteWaterIntake remove do Drift e reatividade atualiza streams',
         () async {
       final repo = WaterRepositoryImpl(
@@ -225,6 +249,46 @@ void main() {
 
       final total = await repo.watchTodayTotal(userId).first;
       expect(total, 500);
+    });
+
+    test(
+        'preserva data no fuso local mesmo se recordedAt vier em UTC que cruza meia-noite',
+        () async {
+      final fixedWednesday = DateTime(2026, 9, 16, 12, 0, 0);
+      final repo = WaterRepositoryImpl(
+        db: db,
+        syncQueue: syncQueue,
+        nowProvider: () => fixedWednesday,
+      );
+
+      const userId = 'user-midnight';
+      await db.into(db.waterIntake).insert(
+        WaterIntakeCompanion.insert(
+          id: 'test-midnight-1',
+          userId: userId,
+          amountMl: 1000,
+          recordedAt: DateTime.utc(2026, 9, 16, 1, 30),
+          date: '2026-09-16',
+          synced: const Value(true),
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+      final todayEntries = await repo.watchTodayEntries(userId).first;
+      expect(todayEntries, hasLength(1));
+      expect(todayEntries.first.amountMl, 1000);
+      expect(todayEntries.first.date, '2026-09-16');
+      expect(todayEntries.first.localRecordedAt.day, 16);
+
+      final todayTotal = await repo.watchTodayTotal(userId).first;
+      expect(todayTotal, 1000);
+
+      final weeklySummary = await repo.watchLast7DaysSummary(userId).first;
+      final wednesday = weeklySummary.last;
+      expect(wednesday.isToday, isTrue);
+      expect(wednesday.totalMl, 1000);
+      final tuesday = weeklySummary[5];
+      expect(tuesday.totalMl, 0);
     });
   });
 }

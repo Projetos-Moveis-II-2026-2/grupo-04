@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:olimpus/core/database/sync/sync_providers.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 
 import '../providers/water_providers.dart';
@@ -44,6 +47,17 @@ class WaterHistoryPage extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          final user = ref.read(currentUserProvider);
+          if (user != null) {
+            try {
+              final syncService =
+                  await ref.read(initialSyncServiceProvider.future);
+              await syncService.pullInitial(force: true);
+            } catch (_) {}
+            try {
+              await ref.read(syncQueueServiceProvider).processQueue();
+            } catch (_) {}
+          }
           ref.invalidate(todayWaterTotalProvider);
           ref.invalidate(todayWaterEntriesProvider);
           ref.invalidate(weeklyWaterSummaryProvider);
@@ -86,6 +100,7 @@ class WaterHistoryPage extends ConsumerWidget {
                         userId: user.id,
                         amountMl: amount,
                       );
+                  unawaited(ref.read(syncQueueServiceProvider).processQueue());
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
