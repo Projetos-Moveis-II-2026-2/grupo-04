@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers.dart';
+import 'package:olimpus/features/water/presentation/providers/water_providers.dart';
+import 'package:olimpus/features/water/presentation/widgets/edit_water_goal_dialog.dart';
 import '../providers/auth_notifier.dart';
 import '../providers/auth_providers.dart';
 
@@ -79,6 +81,17 @@ class SettingsPage extends ConsumerWidget {
               value: isDark,
               onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
             ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(
+              Icons.water_drop_outlined,
+              color: Color(0xFF0288D1),
+            ),
+            title: const Text('Meta Diária de Água'),
+            subtitle: Text('${ref.watch(dailyWaterGoalProvider)} ml'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => EditWaterGoalDialog.show(context),
           ),
           const Divider(),
           ListTile(
