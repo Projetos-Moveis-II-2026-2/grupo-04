@@ -15,7 +15,7 @@ final progressRepositoryProvider = Provider<IProgressRepository>((ref) {
 
 /// Stream reativo com a lista de exercícios que possuem séries registradas pelo usuário.
 final userExercisesWithProgressProvider =
-    StreamProvider.autoDispose<List<UserExerciseSummary>>((ref) {
+    StreamProvider<List<UserExerciseSummary>>((ref) {
       final user = ref.watch(currentUserProvider);
       if (user == null) return Stream.value(const []);
 
@@ -34,7 +34,7 @@ class SelectedExerciseNotifier extends Notifier<String?> {
 }
 
 final selectedExerciseIdProvider =
-    NotifierProvider.autoDispose<SelectedExerciseNotifier, String?>(
+    NotifierProvider<SelectedExerciseNotifier, String?>(
       SelectedExerciseNotifier.new,
     );
 
@@ -42,7 +42,7 @@ final selectedExerciseIdProvider =
 ///
 /// Caso o usuário ainda não tenha selecionado manualmente, seleciona
 /// o primeiro exercício da lista disponível por padrão.
-final activeExerciseIdProvider = Provider.autoDispose<String?>((ref) {
+final activeExerciseIdProvider = Provider<String?>((ref) {
   final manualSelection = ref.watch(selectedExerciseIdProvider);
   if (manualSelection != null) return manualSelection;
 
@@ -52,24 +52,25 @@ final activeExerciseIdProvider = Provider.autoDispose<String?>((ref) {
 
 /// Stream reativo com a evolução de carga (pontos de carga máxima por sessão)
 /// do exercício ativo.
-final exerciseLoadProgressionProvider =
-    StreamProvider.autoDispose<List<ExerciseLoadPoint>>((ref) {
-      final user = ref.watch(currentUserProvider);
-      final exerciseId = ref.watch(activeExerciseIdProvider);
+final exerciseLoadProgressionProvider = StreamProvider<List<ExerciseLoadPoint>>(
+  (ref) {
+    final user = ref.watch(currentUserProvider);
+    final exerciseId = ref.watch(activeExerciseIdProvider);
 
-      if (user == null || exerciseId == null) {
-        return Stream.value(const []);
-      }
+    if (user == null || exerciseId == null) {
+      return Stream.value(const []);
+    }
 
-      final repo = ref.watch(progressRepositoryProvider);
-      return repo.watchExerciseLoadProgression(
-        userId: user.id,
-        exerciseId: exerciseId,
-      );
-    });
+    final repo = ref.watch(progressRepositoryProvider);
+    return repo.watchExerciseLoadProgression(
+      userId: user.id,
+      exerciseId: exerciseId,
+    );
+  },
+);
 
 /// Stream reativo que indica se o usuário possui dados gerados pelo seeder de demonstração.
-final hasDemoDataProgressionProvider = StreamProvider.autoDispose<bool>((ref) {
+final hasDemoDataProgressionProvider = StreamProvider<bool>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(false);
 

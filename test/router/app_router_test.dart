@@ -13,6 +13,7 @@ import 'package:olimpus/features/auth/presentation/pages/settings_page.dart';
 import 'package:olimpus/features/auth/presentation/pages/splash_page.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:olimpus/features/progress/presentation/pages/progress_page.dart';
+import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
 import 'package:olimpus/features/workout/presentation/pages/workout_list_page.dart';
 import 'package:olimpus/router/app_router.dart';
 import 'package:olimpus/router/scaffold_with_nav_bar.dart';
@@ -30,13 +31,15 @@ Widget createTestApp({
       sharedPreferencesProvider.overrideWithValue(prefs),
       authRepositoryProvider.overrideWithValue(mockAuthRepo),
       authStateProvider.overrideWith((ref) => authController.stream),
+      userExercisesWithProgressProvider.overrideWith(
+        (ref) => Stream.value(const []),
+      ),
+      hasDemoDataProgressionProvider.overrideWith((ref) => Stream.value(false)),
     ],
     child: Consumer(
       builder: (context, ref, _) {
         final router = ref.watch(appRouterProvider);
-        return MaterialApp.router(
-          routerConfig: router,
-        );
+        return MaterialApp.router(routerConfig: router);
       },
     ),
   );
@@ -78,8 +81,9 @@ void main() {
       await authController.close();
     });
 
-    testWidgets('exibe SplashPage inicialmente enquanto auth está carregando',
-        (tester) async {
+    testWidgets('exibe SplashPage inicialmente enquanto auth está carregando', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestApp(
           authController: authController,
@@ -92,87 +96,102 @@ void main() {
       expect(find.byType(SplashPage), findsOneWidget);
     });
 
-    testWidgets('redireciona para LoginPage quando usuário não está autenticado',
-        (tester) async {
-      await tester.pumpWidget(
-        createTestApp(
-          authController: authController,
-          mockAuthRepo: mockAuthRepo,
-          prefs: prefs,
-        ),
-      );
+    testWidgets(
+      'redireciona para LoginPage quando usuário não está autenticado',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            authController: authController,
+            mockAuthRepo: mockAuthRepo,
+            prefs: prefs,
+          ),
+        );
 
-      // Emite null (não autenticado)
-      authController.add(null);
-      await tester.pumpAndSettle();
+        // Emite null (não autenticado)
+        authController.add(null);
+        await tester.pumpAndSettle();
 
-      expect(find.byType(LoginPage), findsOneWidget);
-    });
+        expect(find.byType(LoginPage), findsOneWidget);
+      },
+    );
 
     testWidgets(
-        'redireciona para LoginPage se usuário tem email pendente de confirmação',
-        (tester) async {
-      await tester.pumpWidget(
-        createTestApp(
-          authController: authController,
-          mockAuthRepo: mockAuthRepo,
-          prefs: prefs,
-        ),
-      );
+      'redireciona para LoginPage se usuário tem email pendente de confirmação',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            authController: authController,
+            mockAuthRepo: mockAuthRepo,
+            prefs: prefs,
+          ),
+        );
 
-      // Emite usuário sem confirmação de email
-      authController.add(authenticatedUser);
-      await tester.pumpAndSettle();
+        // Emite usuário sem confirmação de email
+        authController.add(authenticatedUser);
+        await tester.pumpAndSettle();
 
-      expect(find.byType(LoginPage), findsOneWidget);
-    });
-
-    testWidgets(
-        'redireciona para /home (HomePage dentro de ScaffoldWithNavBar) quando autenticado com email confirmado',
-        (tester) async {
-      await tester.pumpWidget(
-        createTestApp(
-          authController: authController,
-          mockAuthRepo: mockAuthRepo,
-          prefs: prefs,
-        ),
-      );
-
-      authController.add(confirmedUser);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(ScaffoldWithNavBar), findsOneWidget);
-      expect(find.byType(HomePage), findsOneWidget);
-      expect(find.text('confirmado@olimpus.com'), findsOneWidget);
-    });
+        expect(find.byType(LoginPage), findsOneWidget);
+      },
+    );
 
     testWidgets(
-        'ScaffoldWithNavBar possui as 4 abas corretas (Início, Treinos, Exercícios, Progresso)',
-        (tester) async {
-      await tester.pumpWidget(
-        createTestApp(
-          authController: authController,
-          mockAuthRepo: mockAuthRepo,
-          prefs: prefs,
-        ),
-      );
+      'redireciona para /home (HomePage dentro de ScaffoldWithNavBar) quando autenticado com email confirmado',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            authController: authController,
+            mockAuthRepo: mockAuthRepo,
+            prefs: prefs,
+          ),
+        );
 
-      authController.add(confirmedUser);
-      await tester.pumpAndSettle();
+        authController.add(confirmedUser);
+        await tester.pumpAndSettle();
 
-      final navBar = find.byType(NavigationBar);
-      expect(navBar, findsOneWidget);
-      expect(
-          find.descendant(of: navBar, matching: find.text('Início')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Treinos')),
-          findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Exercícios')),
-          findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Progresso')),
-          findsOneWidget);
-    });
+        expect(find.byType(ScaffoldWithNavBar), findsOneWidget);
+        expect(find.byType(HomePage), findsOneWidget);
+        expect(find.text('confirmado@olimpus.com'), findsOneWidget);
+      },
+    );
 
-    testWidgets('alterna entre as abas via BottomNavigationBar', (tester) async {
+    testWidgets(
+      'ScaffoldWithNavBar possui as 4 abas corretas (Início, Treinos, Exercícios, Progresso)',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            authController: authController,
+            mockAuthRepo: mockAuthRepo,
+            prefs: prefs,
+          ),
+        );
+
+        authController.add(confirmedUser);
+        await tester.pumpAndSettle();
+
+        final navBar = find.byType(NavigationBar);
+        expect(navBar, findsOneWidget);
+        expect(
+          find.descendant(of: navBar, matching: find.text('Início')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: navBar, matching: find.text('Treinos')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: navBar, matching: find.text('Exercícios')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: navBar, matching: find.text('Progresso')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('alterna entre as abas via BottomNavigationBar', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestApp(
           authController: authController,
@@ -190,23 +209,30 @@ void main() {
       expect(find.byType(HomePage), findsOneWidget);
 
       // Toca na aba Treinos
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Treinos')));
+      await tester.tap(
+        find.descendant(of: navBar, matching: find.text('Treinos')),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(WorkoutListPage), findsOneWidget);
 
       // Toca na aba Progresso
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Progresso')));
+      await tester.tap(
+        find.descendant(of: navBar, matching: find.text('Progresso')),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(ProgressPage), findsOneWidget);
 
       // Volta para a aba Início
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Início')));
+      await tester.tap(
+        find.descendant(of: navBar, matching: find.text('Início')),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(HomePage), findsOneWidget);
     });
 
-    testWidgets('navega para SettingsPage e abre sem o ScaffoldWithNavBar',
-        (tester) async {
+    testWidgets('navega para SettingsPage e abre sem o ScaffoldWithNavBar', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestApp(
           authController: authController,
