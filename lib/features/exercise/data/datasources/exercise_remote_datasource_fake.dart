@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../../domain/entities/exercise.dart';
 
@@ -53,7 +54,7 @@ class ExerciseRemoteDataSourceFake {
         );
       }).toList();
     } catch (e) {
-      print('Erro ao carregar o JSON local: $e');
+      debugPrint('Erro ao carregar o JSON local: $e');
       return [];
     }
   }

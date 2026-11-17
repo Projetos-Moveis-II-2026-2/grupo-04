@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 
@@ -85,7 +86,7 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
                   );
                 }
                 return ListView.builder(
-                  cacheExtent: 1500.0, // Pre-caches elements that are 1500 pixels away from the viewport (Lazy Image Loading optimized)
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(1500), // Pre-caches elements that are 1500 pixels away from the viewport (Lazy Image Loading optimized)
                   padding: const EdgeInsets.all(16),
                   itemCount: exercises.length,
                   itemBuilder: (context, index) {
