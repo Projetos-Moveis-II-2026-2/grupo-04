@@ -1,5 +1,7 @@
 # 🏋️‍♂️ Olimpus
 
+[![CI](https://github.com/Projetos-Moveis-II-2026-2/grupo-04/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/Projetos-Moveis-II-2026-2/grupo-04/actions/workflows/ci.yml)
+
 Bem-vindo ao **Olimpus**! Este é o nosso app de acompanhamento de treino de musculação e hidratação. Construído com **Flutter** e **Supabase**, ele foca em uma experiência *offline-first* poderosa para que você possa treinar mesmo sem internet.
 
 > ⚠️ **Status do Documento:** README principal em construção (referente à issue #59 do backlog).
