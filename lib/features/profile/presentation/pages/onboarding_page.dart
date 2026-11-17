@@ -506,12 +506,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 ],
               ),
             ),
-            Radio<ExperienceLevel>(
-              value: level,
-              groupValue: _selectedExperience,
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedExperience = val);
-              },
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
             ),
           ],
         ),

@@ -6,14 +6,10 @@ import '../datasources/supabase_profile_datasource.dart';
 
 /// Implementação padrão de [IProfileRepository] com Supabase e SharedPreferences.
 class ProfileRepositoryImpl implements IProfileRepository {
-  final SupabaseProfileDatasource _datasource;
-  final SharedPreferences _prefs;
+  final SupabaseProfileDatasource datasource;
+  final SharedPreferences prefs;
 
-  const ProfileRepositoryImpl({
-    required SupabaseProfileDatasource datasource,
-    required SharedPreferences prefs,
-  }) : _datasource = datasource,
-       _prefs = prefs;
+  const ProfileRepositoryImpl({required this.datasource, required this.prefs});
 
   static const String _onboardingKeyPrefix = 'onboarding_completed_';
 
@@ -21,7 +17,7 @@ class ProfileRepositoryImpl implements IProfileRepository {
 
   @override
   Future<UserProfile?> getProfile(String userId) async {
-    final data = await _datasource.getProfile(userId);
+    final data = await datasource.getProfile(userId);
     if (data == null) return null;
     return UserProfile.fromMap(data);
   }
@@ -36,12 +32,12 @@ class ProfileRepositoryImpl implements IProfileRepository {
       if (profile.avatarUrl != null) 'avatar_url': profile.avatarUrl,
     };
 
-    await _datasource.updateProfile(profile.id, data);
+    await datasource.updateProfile(profile.id, data);
   }
 
   @override
   bool isOnboardingCompletedLocally(String userId) {
-    return _prefs.getBool(_onboardingKey(userId)) ?? false;
+    return prefs.getBool(_onboardingKey(userId)) ?? false;
   }
 
   @override
@@ -49,6 +45,6 @@ class ProfileRepositoryImpl implements IProfileRepository {
     String userId, {
     bool completed = true,
   }) async {
-    await _prefs.setBool(_onboardingKey(userId), completed);
+    await prefs.setBool(_onboardingKey(userId), completed);
   }
 }

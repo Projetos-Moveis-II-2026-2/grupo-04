@@ -25,15 +25,15 @@ class FakeOnboardingNotifier extends OnboardingNotifier {
   int? capturedWaterGoal;
   ExperienceLevel? capturedExperience;
 
-  final AsyncValue<void> _initialState;
+  final AsyncValue<void> initialState;
 
   FakeOnboardingNotifier({
     this.onComplete,
-    AsyncValue<void> initialState = const AsyncData(null),
-  }) : _initialState = initialState;
+    this.initialState = const AsyncData(null),
+  });
 
   @override
-  AsyncValue<void> build() => _initialState;
+  AsyncValue<void> build() => initialState;
 
   @override
   Future<bool> completeOnboarding({
