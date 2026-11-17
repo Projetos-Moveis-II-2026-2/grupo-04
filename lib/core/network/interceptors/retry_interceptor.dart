@@ -12,10 +12,7 @@ class RetryInterceptor extends Interceptor {
   RetryInterceptor({
     required this.dio,
     this.maxRetries = 2,
-    this.retryDelays = const [
-      Duration(seconds: 1),
-      Duration(seconds: 2),
-    ],
+    this.retryDelays = const [Duration(seconds: 1), Duration(seconds: 2)],
   });
 
   @override
@@ -30,8 +27,7 @@ class RetryInterceptor extends Interceptor {
       final nextRetryCount = retryCount + 1;
       requestOptions.extra['retry_count'] = nextRetryCount;
 
-      final delayIndex =
-          (nextRetryCount - 1).clamp(0, retryDelays.length - 1);
+      final delayIndex = (nextRetryCount - 1).clamp(0, retryDelays.length - 1);
       final delay = retryDelays[delayIndex];
 
       await Future<void>.delayed(delay);
@@ -58,8 +54,11 @@ class RetryInterceptor extends Interceptor {
       return false;
     }
 
-    final isIdempotentMethod = const ['GET', 'HEAD', 'OPTIONS']
-        .contains(requestOptions.method.toUpperCase());
+    final isIdempotentMethod = const [
+      'GET',
+      'HEAD',
+      'OPTIONS',
+    ].contains(requestOptions.method.toUpperCase());
     final explicitAllowRetry = requestOptions.extra['allow_retry'] == true;
 
     // Apenas repete se for método idempotente ou se tiver sido explicitamente autorizado
@@ -68,7 +67,8 @@ class RetryInterceptor extends Interceptor {
     }
 
     // Apenas erros transitórios de rede/timeout ou status 503
-    final isNetworkOrTimeout = err.type == DioExceptionType.connectionTimeout ||
+    final isNetworkOrTimeout =
+        err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.sendTimeout ||
         err.type == DioExceptionType.connectionError;

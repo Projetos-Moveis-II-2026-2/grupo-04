@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+
 import '../../../../core/database/app_database.dart';
 import '../../domain/entities/exercise.dart';
 
@@ -37,7 +38,9 @@ class ExerciseLocalDataSource {
   }
 
   /// Insert or replace multiple exercises
-  Future<void> insertExercises(List<ExerciseLibraryTableCompanion> exercises) async {
+  Future<void> insertExercises(
+    List<ExerciseLibraryTableCompanion> exercises,
+  ) async {
     await _db.batch((batch) {
       batch.insertAll(
         _db.exerciseLibraryTable,

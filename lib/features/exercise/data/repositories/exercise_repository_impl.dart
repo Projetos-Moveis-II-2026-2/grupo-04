@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
+
 import '../../../../core/database/app_database.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/repositories/i_exercise_repository.dart';

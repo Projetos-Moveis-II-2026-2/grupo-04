@@ -34,10 +34,7 @@ void main() {
       retryDelays: const [Duration.zero, Duration.zero],
     );
 
-    final requestOptions = RequestOptions(
-      path: '/exercises',
-      method: 'GET',
-    );
+    final requestOptions = RequestOptions(path: '/exercises', method: 'GET');
 
     final dioException = DioException(
       requestOptions: requestOptions,
@@ -66,10 +63,7 @@ void main() {
       retryDelays: const [Duration.zero],
     );
 
-    final requestOptions = RequestOptions(
-      path: '/workouts',
-      method: 'POST',
-    );
+    final requestOptions = RequestOptions(path: '/workouts', method: 'POST');
 
     final dioException = DioException(
       requestOptions: requestOptions,
@@ -82,37 +76,40 @@ void main() {
     verify(() => handler.next(dioException)).called(1);
   });
 
-  test('repete requisição POST se allow_retry estiver explicitamente habilitado', () async {
-    final interceptor = RetryInterceptor(
-      dio: mockDio,
-      maxRetries: 2,
-      retryDelays: const [Duration.zero],
-    );
+  test(
+    'repete requisição POST se allow_retry estiver explicitamente habilitado',
+    () async {
+      final interceptor = RetryInterceptor(
+        dio: mockDio,
+        maxRetries: 2,
+        retryDelays: const [Duration.zero],
+      );
 
-    final requestOptions = RequestOptions(
-      path: '/workouts',
-      method: 'POST',
-      extra: {'allow_retry': true},
-    );
+      final requestOptions = RequestOptions(
+        path: '/workouts',
+        method: 'POST',
+        extra: {'allow_retry': true},
+      );
 
-    final dioException = DioException(
-      requestOptions: requestOptions,
-      type: DioExceptionType.connectionTimeout,
-    );
+      final dioException = DioException(
+        requestOptions: requestOptions,
+        type: DioExceptionType.connectionTimeout,
+      );
 
-    final successResponse = Response<dynamic>(
-      requestOptions: requestOptions,
-      statusCode: 201,
-    );
+      final successResponse = Response<dynamic>(
+        requestOptions: requestOptions,
+        statusCode: 201,
+      );
 
-    when(() => mockDio.fetch<dynamic>(any()))
-        .thenAnswer((_) async => successResponse);
+      when(() => mockDio.fetch<dynamic>(any()))
+          .thenAnswer((_) async => successResponse);
 
-    await interceptor.onError(dioException, handler);
+      await interceptor.onError(dioException, handler);
 
-    verify(() => mockDio.fetch<dynamic>(any())).called(1);
-    verify(() => handler.resolve(successResponse)).called(1);
-  });
+      verify(() => mockDio.fetch<dynamic>(any())).called(1);
+      verify(() => handler.resolve(successResponse)).called(1);
+    },
+  );
 
   test('para de repetir quando atinge maxRetries', () async {
     final interceptor = RetryInterceptor(

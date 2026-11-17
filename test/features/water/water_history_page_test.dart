@@ -32,10 +32,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: DailyWaterTotalCard(
-              totalMl: 1850,
-              goalMl: 2000,
-            ),
+            body: DailyWaterTotalCard(totalMl: 1850, goalMl: 2000),
           ),
         ),
       );
@@ -46,15 +43,13 @@ void main() {
       expect(find.text('92%'), findsOneWidget);
     });
 
-    testWidgets('exibe "Meta atingida! 🎉" quando totalMl >= goalMl',
-        (tester) async {
+    testWidgets('exibe "Meta atingida! 🎉" quando totalMl >= goalMl', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: DailyWaterTotalCard(
-              totalMl: 2200,
-              goalMl: 2000,
-            ),
+            body: DailyWaterTotalCard(totalMl: 2200, goalMl: 2000),
           ),
         ),
       );
@@ -65,13 +60,12 @@ void main() {
   });
 
   group('TodayWaterEntriesList Widget', () {
-    testWidgets('exibe estado vazio amigável quando lista está vazia',
-        (tester) async {
+    testWidgets('exibe estado vazio amigável quando lista está vazia', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: TodayWaterEntriesList(entries: []),
-          ),
+          home: Scaffold(body: TodayWaterEntriesList(entries: [])),
         ),
       );
 
@@ -79,8 +73,9 @@ void main() {
       expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
     });
 
-    testWidgets('exibe itens com volume em ml e horário formatado',
-        (tester) async {
+    testWidgets('exibe itens com volume em ml e horário formatado', (
+      tester,
+    ) async {
       final entries = [
         WaterIntakeRecord(
           id: 'w-1',
@@ -100,9 +95,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: TodayWaterEntriesList(entries: entries),
-          ),
+          home: Scaffold(body: TodayWaterEntriesList(entries: entries)),
         ),
       );
 
@@ -224,8 +217,9 @@ void main() {
       expect(vibrations, ['HapticFeedbackType.mediumImpact']);
     });
 
-    testWidgets('renderiza página completa com dados providos pelo Riverpod',
-        (tester) async {
+    testWidgets('renderiza página completa com dados providos pelo Riverpod', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -303,9 +297,7 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             currentUserProvider.overrideWithValue(testUser),
-            todayWaterTotalProvider.overrideWith(
-              (ref) => Stream.value(850),
-            ),
+            todayWaterTotalProvider.overrideWith((ref) => Stream.value(850)),
             todayWaterEntriesProvider.overrideWith(
               (ref) => Stream.value(entries),
             ),
@@ -313,9 +305,7 @@ void main() {
               (ref) => Stream.value(summaries),
             ),
           ],
-          child: const MaterialApp(
-            home: WaterHistoryPage(),
-          ),
+          child: const MaterialApp(home: WaterHistoryPage()),
         ),
       );
 
@@ -343,4 +333,3 @@ void main() {
     });
   });
 }
-

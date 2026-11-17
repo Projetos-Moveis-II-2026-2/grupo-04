@@ -14,24 +14,28 @@ void main() {
     );
   });
 
-  test('ErrorInterceptor anexa AppException correspondente ao DioException', () {
-    const interceptor = ErrorInterceptor();
-    final handler = _MockErrorInterceptorHandler();
+  test(
+    'ErrorInterceptor anexa AppException correspondente ao DioException',
+    () {
+      const interceptor = ErrorInterceptor();
+      final handler = _MockErrorInterceptorHandler();
 
-    final dioException = DioException(
-      requestOptions: RequestOptions(path: '/test'),
-      type: DioExceptionType.connectionTimeout,
-    );
+      final dioException = DioException(
+        requestOptions: RequestOptions(path: '/test'),
+        type: DioExceptionType.connectionTimeout,
+      );
 
-    interceptor.onError(dioException, handler);
+      interceptor.onError(dioException, handler);
 
-    final captured = verify(() => handler.next(captureAny())).captured.single
-        as DioException;
+      final captured =
+          verify(() => handler.next(captureAny())).captured.single
+              as DioException;
 
-    expect(captured.error, isA<TimeoutException>());
-    expect(
-      (captured.error as TimeoutException).message,
-      contains('demorou para responder'),
-    );
-  });
+      expect(captured.error, isA<TimeoutException>());
+      expect(
+        (captured.error as TimeoutException).message,
+        contains('demorou para responder'),
+      );
+    },
+  );
 }

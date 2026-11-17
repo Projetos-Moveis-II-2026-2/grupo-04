@@ -40,8 +40,9 @@ class WaterRepositoryImpl implements IWaterRepository {
       final todayDate = _toLocalDay(now);
 
       return entries
-          .where((e) =>
-              e.date == todayStr || _toLocalDay(e.recordedAt) == todayDate)
+          .where(
+            (e) => e.date == todayStr || _toLocalDay(e.recordedAt) == todayDate,
+          )
           .map(_toRecord)
           .toList()
         ..sort((a, b) => a.localRecordedAt.compareTo(b.localRecordedAt));
@@ -118,19 +119,14 @@ class WaterRepositoryImpl implements IWaterRepository {
 
     // Enfileira na SyncQueue se disponível com timestamp UTC explícito (com 'Z')
     if (syncQueue != null) {
-      await syncQueue!.enqueue(
-        'water_intake',
-        id,
-        'upsert',
-        {
-          'id': id,
-          'user_id': userId,
-          'amount_ml': amountMl,
-          'recorded_at': at.toUtc().toIso8601String(),
-          'date': localDateStr,
-          'updated_at': now.toUtc().toIso8601String(),
-        },
-      );
+      await syncQueue!.enqueue('water_intake', id, 'upsert', {
+        'id': id,
+        'user_id': userId,
+        'amount_ml': amountMl,
+        'recorded_at': at.toUtc().toIso8601String(),
+        'date': localDateStr,
+        'updated_at': now.toUtc().toIso8601String(),
+      });
       unawaited(syncQueue!.processQueue());
     }
 
@@ -159,9 +155,9 @@ class WaterRepositoryImpl implements IWaterRepository {
           ..where((tbl) => tbl.userId.equals(userId))
           ..orderBy([
             (tbl) => OrderingTerm(
-                  expression: tbl.recordedAt,
-                  mode: OrderingMode.asc,
-                ),
+              expression: tbl.recordedAt,
+              mode: OrderingMode.asc,
+            ),
           ]))
         .watch();
   }
@@ -189,6 +185,4 @@ class WaterRepositoryImpl implements IWaterRepository {
       synced: entry.synced,
     );
   }
-
 }
-

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'dart:async';
 
 import 'package:go_router/go_router.dart';
 import 'package:olimpus/core/widgets/app_error_widget.dart';
+
 import '../providers/exercise_providers.dart';
 import '../widgets/exercise_card.dart';
 import '../widgets/muscle_group_filter.dart';
@@ -13,7 +15,8 @@ class ExerciseLibraryPage extends ConsumerStatefulWidget {
   const ExerciseLibraryPage({super.key});
 
   @override
-  ConsumerState<ExerciseLibraryPage> createState() => _ExerciseLibraryPageState();
+  ConsumerState<ExerciseLibraryPage> createState() =>
+      _ExerciseLibraryPageState();
 }
 
 class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
@@ -49,9 +52,7 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
     final exercisesAsync = ref.watch(filteredExercisesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Biblioteca de Exercícios'),
-      ),
+      appBar: AppBar(title: const Text('Biblioteca de Exercícios')),
       body: Column(
         children: [
           // Barra de Busca
@@ -73,7 +74,7 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
 
           // Filtro de Músculos
           const MuscleGroupFilter(),
-          
+
           const SizedBox(height: 8),
 
           // Lista
@@ -94,7 +95,10 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
                     return ExerciseCard(
                       exercise: exercise,
                       onTap: () {
-                        context.push('/exercises/${exercise.id}', extra: exercise);
+                        context.push(
+                          '/exercises/${exercise.id}',
+                          extra: exercise,
+                        );
                       },
                     );
                   },

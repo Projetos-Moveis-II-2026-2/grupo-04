@@ -9,15 +9,11 @@ class ExerciseDetailsPage extends ConsumerWidget {
   final Exercise? exercise;
   final String? exerciseId;
 
-  const ExerciseDetailsPage({
-    super.key,
-    required Exercise this.exercise,
-  }) : exerciseId = null;
+  const ExerciseDetailsPage({super.key, required Exercise this.exercise})
+    : exerciseId = null;
 
-  const ExerciseDetailsPage.byId({
-    super.key,
-    required String this.exerciseId,
-  }) : exercise = null;
+  const ExerciseDetailsPage.byId({super.key, required String this.exerciseId})
+    : exercise = null;
 
   factory ExerciseDetailsPage.fromRouteState({
     required String id,
@@ -42,9 +38,7 @@ class ExerciseDetailsPage extends ConsumerWidget {
         if (found == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Exercício')),
-            body: const Center(
-              child: Text('Exercício não encontrado.'),
-            ),
+            body: const Center(child: Text('Exercício não encontrado.')),
           );
         }
         return _buildScaffold(context, found);
@@ -62,9 +56,7 @@ class ExerciseDetailsPage extends ConsumerWidget {
 
   Widget _buildScaffold(BuildContext context, Exercise currentExercise) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(currentExercise.name),
-      ),
+      appBar: AppBar(title: Text(currentExercise.name)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -85,30 +77,35 @@ class ExerciseDetailsPage extends ConsumerWidget {
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) =>
                             const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.image_not_supported,
-                                  size: 50, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text(
-                                'Substitua este arquivo vazio na pasta assets/gifs',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.image_not_supported,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Substitua este arquivo vazio na pasta assets/gifs',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
                       )
                     : CachedNetworkImage(
                         imageUrl: currentExercise.firstImageUrl!,
                         fit: BoxFit.contain,
-                        placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        placeholder: (context, url) =>
+                            const Center(child: CircularProgressIndicator()),
                         errorWidget: (context, url, error) => const Center(
-                          child: Icon(Icons.image_not_supported,
-                              size: 50, color: Colors.grey),
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
               )
@@ -120,8 +117,11 @@ class ExerciseDetailsPage extends ConsumerWidget {
                   color: Theme.of(context).cardColor,
                 ),
                 child: const Center(
-                  child:
-                      Icon(Icons.fitness_center, size: 60, color: Colors.grey),
+                  child: Icon(
+                    Icons.fitness_center,
+                    size: 60,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
 
@@ -130,9 +130,8 @@ class ExerciseDetailsPage extends ConsumerWidget {
             // Informações
             Text(
               'Músculo Alvo',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -144,17 +143,15 @@ class ExerciseDetailsPage extends ConsumerWidget {
 
             Text(
               'Instruções',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               currentExercise.instructions ??
                   'Nenhuma instrução disponível para este exercício.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    height: 1.5,
-                  ),
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(height: 1.5),
             ),
           ],
         ),
