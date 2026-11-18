@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olimpus/core/database/app_database.dart';
 import 'package:olimpus/core/providers.dart';
+import 'package:olimpus/core/providers/action_feedback_provider.dart';
 import 'package:olimpus/features/auth/domain/entities/app_user.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:olimpus/features/exercise/data/datasources/exercise_local_datasource.dart';
@@ -19,6 +20,22 @@ import 'package:olimpus/features/exercise/presentation/providers/exercise_provid
 import 'package:olimpus/features/workout/presentation/pages/free_workout_page.dart';
 import 'package:olimpus/features/workout/presentation/providers/free_workout_exercises_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../helpers/pump_app.dart';
+
+class _FakeActionFeedback extends ActionFeedback {
+  _FakeActionFeedback([this._onPlay]);
+
+  final void Function(bool lightImpact)? _onPlay;
+
+  @override
+  ActionFeedbackSettings build() => (vibration: true, sound: false);
+
+  @override
+  Future<void> play({bool lightImpact = false}) async {
+    _onPlay?.call(lightImpact);
+  }
+}
 
 class _SpyExerciseRepository implements IExerciseRepository {
   _SpyExerciseRepository({this.onSearch, this.onSync});
@@ -438,5 +455,154 @@ void main() {
 
     expect(find.text('Carregando catálogo…'), findsNothing);
     expect(spyRepo.syncCalls, 1);
+  });
+
+  group('FreeWorkoutPage Cobertura Issue #55', () {
+    testWidgets('sem usuário exibe apenas AppBar sem corpo do treino', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        child: const FreeWorkoutPage(),
+        overrides: [currentUserProvider.overrideWithValue(null)],
+      );
+      await tester.pump();
+
+      expect(find.text('Treino livre'), findsOneWidget);
+      expect(find.textContaining('Séries concluídas'), findsNothing);
+      expect(
+        find.byKey(const Key('free_workout_exercise_field')),
+        findsNothing,
+      );
+      expect(find.text('Iniciar timer'), findsNothing);
+    });
+
+    testWidgets(
+      'exibe estado vazio no ExercisePickerSheet quando catálogo está vazio',
+      (tester) async {
+        final db = createInMemoryDb();
+        final spyRepo = _SpyExerciseRepository(
+          onSearch: (_, _) async => const [],
+        );
+
+        await pumpApp(
+          tester,
+          child: const FreeWorkoutPage(),
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            currentUserProvider.overrideWithValue(user),
+            exerciseRepositoryProvider.overrideWithValue(spyRepo),
+            actionFeedbackProvider.overrideWith(_FakeActionFeedback.new),
+          ],
+        );
+        await tester.pumpAndSettleBounded();
+
+        await tester.tap(find.byKey(const Key('free_workout_exercise_field')));
+        await tester.pumpAndSettleBounded();
+
+        expect(find.text('Selecionar exercício'), findsOneWidget);
+        expect(find.text('Nenhum exercício encontrado'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'valida carga/repetições, registra série pelo sheet com feedback tátil, controla timer e conclui treino',
+      (tester) async {
+        final db = createInMemoryDb();
+        await tester.runAsync(
+          () => ExerciseLocalDataSource(db).insertExercises([
+            ExerciseLibraryTableCompanion.insert(
+              id: 'ex-supino',
+              externalId: 'supino',
+              name: 'Supino Reto',
+              updatedAt: DateTime(2026, 9, 16),
+            ),
+            ExerciseLibraryTableCompanion.insert(
+              id: 'ex-agachamento',
+              externalId: 'agachamento',
+              name: 'Agachamento',
+              updatedAt: DateTime(2026, 9, 16),
+            ),
+          ]),
+        );
+
+        final playCalls = <bool>[];
+
+        await pumpApp(
+          tester,
+          child: const FreeWorkoutPage(),
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            currentUserProvider.overrideWithValue(user),
+            actionFeedbackProvider.overrideWith(
+              () => _FakeActionFeedback(playCalls.add),
+            ),
+          ],
+        );
+        await tester.pumpAndSettleBounded();
+
+        expect(find.text('Séries concluídas neste treino: 0'), findsOneWidget);
+        expect(
+          find.byKey(const Key('free_workout_exercise_field')),
+          findsOneWidget,
+        );
+
+        // Valida campos sem selecionar exercício e sem valores válidos.
+        await tester.tap(find.text('Concluir série'));
+        await tester.pump();
+        expect(find.text('Selecione um exercício.'), findsOneWidget);
+        expect(find.text('Informe uma carga válida.'), findsOneWidget);
+        expect(
+          find.text('Informe um número de repetições maior que zero.'),
+          findsOneWidget,
+        );
+        expect(playCalls, isEmpty);
+
+        // Abre o ExercisePickerSheet e seleciona Supino Reto.
+        await tester.tap(find.byKey(const Key('free_workout_exercise_field')));
+        await tester.pumpAndSettleBounded();
+        expect(find.text('Supino Reto'), findsOneWidget);
+        expect(find.text('Agachamento'), findsOneWidget);
+        await tester.tap(find.text('Supino Reto'));
+        await tester.pumpAndSettleBounded();
+
+        // Preenche carga e repetições válidas e conclui a série.
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Carga (kg)'),
+          '60,5',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Repetições'),
+          '12',
+        );
+        await tester.tap(find.text('Concluir série'));
+        await tester.pumpAndSettleBounded();
+
+        expect(find.text('Séries concluídas neste treino: 1'), findsOneWidget);
+        expect(find.text('Série concluída'), findsOneWidget);
+        expect(playCalls, [false]);
+        expect(find.text('Concluir treino'), findsOneWidget);
+
+        // Timer de descanso aciona feedback leve e pode ser interrompido.
+        await tester.ensureVisible(find.text('Iniciar timer'));
+        await tester.tap(find.text('Iniciar timer'));
+        await tester.pump();
+        expect(find.text('Parar timer'), findsOneWidget);
+        expect(playCalls, [false, true]);
+
+        await tester.tap(find.text('Parar timer'));
+        await tester.pump();
+        expect(find.text('Iniciar timer'), findsOneWidget);
+
+        // Conclui o treino.
+        await tester.ensureVisible(find.text('Concluir treino'));
+        await tester.tap(find.text('Concluir treino'));
+        await tester.pumpAndSettleBounded();
+        expect(find.text('Treino concluído'), findsOneWidget);
+        expect(find.text('Séries concluídas neste treino: 0'), findsOneWidget);
+      },
+    );
   });
 }
