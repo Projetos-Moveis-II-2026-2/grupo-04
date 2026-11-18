@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olimpus/core/database/sync/sync_providers.dart';
+import 'package:olimpus/core/providers/action_feedback_provider.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 
 import '../providers/water_providers.dart';
@@ -25,6 +26,22 @@ class WaterHistoryPage extends ConsumerWidget {
     final entriesAsync = ref.watch(todayWaterEntriesProvider);
     final weeklyAsync = ref.watch(weeklyWaterSummaryProvider);
     final goal = ref.watch(dailyWaterGoalProvider);
+
+    ref.listen(todayWaterTotalProvider, (previous, next) {
+      final previousTotal = previous?.asData?.value;
+      final nextTotal = next.asData?.value;
+      final currentGoal = ref.read(dailyWaterGoalProvider);
+      if (user != null &&
+          previous?.isLoading == false &&
+          !next.isLoading &&
+          previousTotal != null &&
+          nextTotal != null &&
+          currentGoal > 0 &&
+          previousTotal < currentGoal &&
+          nextTotal >= currentGoal) {
+        unawaited(ref.read(actionFeedbackProvider.notifier).play());
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -232,6 +249,7 @@ class WaterHistoryPage extends ConsumerWidget {
               child: const Text('Cancelar'),
             ),
             FilledButton(
+              style: const ButtonStyle(enableFeedback: false),
               onPressed: () async {
                 if (formKey.currentState?.validate() ?? false) {
                   final amount = int.parse(controller.text);
@@ -280,6 +298,7 @@ class _QuickAddButtonsRow extends StatelessWidget {
             icon: const Icon(Icons.add, size: 16),
             label: const Text('+250 ml'),
             style: OutlinedButton.styleFrom(
+              enableFeedback: false,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -294,6 +313,7 @@ class _QuickAddButtonsRow extends StatelessWidget {
             icon: const Icon(Icons.add, size: 16),
             label: const Text('+500 ml'),
             style: OutlinedButton.styleFrom(
+              enableFeedback: false,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
