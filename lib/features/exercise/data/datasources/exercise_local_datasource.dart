@@ -88,6 +88,40 @@ class ExerciseLocalDataSource {
     return row != null;
   }
 
+  /// Resolve nomes do catálogo local para uma coleção de chaves (`id`,
+  /// `remoteId` ou `externalId`).
+  Future<Map<String, String>> findNamesByKeys(Iterable<String> keys) async {
+    final uniqueKeys = keys
+        .map((k) => k.trim())
+        .where((k) => k.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (uniqueKeys.isEmpty) return const {};
+
+    final table = _db.exerciseLibraryTable;
+    final select = _db.selectOnly(table)
+      ..addColumns([table.id, table.remoteId, table.externalId, table.name])
+      ..where(
+        table.id.isIn(uniqueKeys) |
+            table.remoteId.isIn(uniqueKeys) |
+            table.externalId.isIn(uniqueKeys),
+      );
+
+    final rows = await select.get();
+    final map = <String, String>{};
+    for (final row in rows) {
+      final name = row.read(table.name);
+      if (name == null || name.isEmpty) continue;
+      final id = row.read(table.id);
+      final remoteId = row.read(table.remoteId);
+      final externalId = row.read(table.externalId);
+      if (id != null && id.isNotEmpty) map[id] = name;
+      if (remoteId != null && remoteId.isNotEmpty) map[remoteId] = name;
+      if (externalId != null && externalId.isNotEmpty) map[externalId] = name;
+    }
+    return map;
+  }
+
   /// Insert or replace multiple exercises em lotes para evitar travamento da UI.
   Future<void> insertExercises(
     List<ExerciseLibraryTableCompanion> exercises, {
