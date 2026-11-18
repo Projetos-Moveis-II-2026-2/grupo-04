@@ -10,7 +10,6 @@ import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart
 import 'package:olimpus/features/exercise/data/datasources/exercise_local_datasource.dart';
 import 'package:olimpus/features/exercise/data/datasources/exercise_remote_datasource_fake.dart';
 import 'package:olimpus/features/exercise/data/repositories/exercise_repository_impl.dart';
-import 'package:olimpus/features/exercise/domain/entities/exercise.dart';
 import 'package:olimpus/features/workout/presentation/pages/free_workout_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -78,11 +77,11 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 10));
       mountWatch.stop();
 
-      final dropdownFinder = find.byType(DropdownMenu<Exercise>);
-      expect(dropdownFinder, findsOneWidget);
+      final fieldFinder = find.byKey(const Key('free_workout_exercise_field'));
+      expect(fieldFinder, findsOneWidget);
 
       final openWatch = Stopwatch()..start();
-      await tester.tap(dropdownFinder);
+      await tester.tap(fieldFinder);
       await tester.pump();
       openWatch.stop();
 
@@ -90,27 +89,45 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 10));
       settleWatch.stop();
 
-      final builtMenuItems = find
-          .byType(MenuItemButton, skipOffstage: false)
+      final builtListItems = find
+          .descendant(
+            of: find.byKey(const Key('free_workout_exercise_results_list')),
+            matching: find.byType(ListTile, skipOffstage: false),
+          )
           .evaluate()
           .length;
 
       final filterWatch = Stopwatch()..start();
-      await tester.enterText(dropdownFinder, 'Supino');
-      await tester.pump();
+      await tester.enterText(
+        find.byKey(const Key('free_workout_exercise_search_field')),
+        'Supino',
+      );
+      await tester.pump(const Duration(milliseconds: 260));
       filterWatch.stop();
+      await tester.pumpAndSettle(const Duration(seconds: 10));
+
+      final filteredItems = find
+          .descendant(
+            of: find.byKey(const Key('free_workout_exercise_results_list')),
+            matching: find.byType(ListTile, skipOffstage: false),
+          )
+          .evaluate()
+          .length;
 
       debugPrint(
-        '[BASELINE Fase 0 UI] '
+        '[Fase 1 UI] '
         'mountAndLoadMs=${mountWatch.elapsedMilliseconds}ms | '
         'tapOpenPumpMs=${openWatch.elapsedMilliseconds}ms | '
         'openSettleMs=${settleWatch.elapsedMilliseconds}ms | '
         'filterPumpMs=${filterWatch.elapsedMilliseconds}ms | '
-        'builtMenuItems=$builtMenuItems',
+        'builtListItems=$builtListItems | '
+        'filteredItems=$filteredItems',
       );
 
-      // Prova do problema no baseline: DropdownMenu constrói todos os 876 itens.
-      expect(builtMenuItems, 876);
+      expect(builtListItems, lessThan(100));
+      expect(builtListItems, lessThanOrEqualTo(30));
+      expect(filteredItems, 1);
+      expect(find.text('Supino Reto Barra'), findsOneWidget);
     },
   );
 
