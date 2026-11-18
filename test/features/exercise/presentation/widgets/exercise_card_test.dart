@@ -42,10 +42,7 @@ void main() {
         ),
       );
 
-      expect(
-        find.text('Supino Reto com Barra - Pegada Média'),
-        findsOneWidget,
-      );
+      expect(find.text('Supino Reto com Barra - Pegada Média'), findsOneWidget);
       expect(find.text('Peito, Tríceps'), findsOneWidget);
       expect(find.text('Barra'), findsOneWidget);
 

@@ -131,9 +131,8 @@ class ExerciseDetailsPage extends ConsumerWidget {
             // Informações
             Text(
               'Músculo Alvo',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -146,9 +145,8 @@ class ExerciseDetailsPage extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 'Músculos Secundários',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               Text(
@@ -189,9 +187,8 @@ class ExerciseDetailsPage extends ConsumerWidget {
 
             Text(
               'Instruções',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -199,9 +196,8 @@ class ExerciseDetailsPage extends ConsumerWidget {
                       currentExercise.instructions!.trim().isEmpty)
                   ? 'Nenhuma instrução disponível para este exercício.'
                   : currentExercise.instructions!,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(height: 1.5),
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(height: 1.5),
             ),
           ],
         ),

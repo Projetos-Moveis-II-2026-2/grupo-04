@@ -40,45 +40,42 @@ void main() {
     await db.close();
   });
 
-  test(
-    'substitutesProvider resolve nome em pt-BR via external_id e mantém fallback',
-    () async {
-      when(() => mockDatasource.getSubstitutes('ex-uuid-1')).thenAnswer(
-        (_) async => const [
-          SubstituteSuggestion(
-            id: 'supabase-uuid-123',
-            externalId: 'Dumbbell_Bench_Press',
-            name: 'Dumbbell Bench Press',
-            equipment: 'dumbbell',
-            imageUrl: null,
-          ),
-          SubstituteSuggestion(
-            id: 'supabase-uuid-999',
-            externalId: 'Unknown_Exercise',
-            name: 'Unknown Exercise',
-            equipment: 'cable',
-            imageUrl: null,
-          ),
-        ],
-      );
+  test('substitutesProvider resolve nome em pt-BR via external_id e mantém fallback', () async {
+    when(() => mockDatasource.getSubstitutes('ex-uuid-1')).thenAnswer(
+      (_) async => const [
+        SubstituteSuggestion(
+          id: 'supabase-uuid-123',
+          externalId: 'Dumbbell_Bench_Press',
+          name: 'Dumbbell Bench Press',
+          equipment: 'dumbbell',
+          imageUrl: null,
+        ),
+        SubstituteSuggestion(
+          id: 'supabase-uuid-999',
+          externalId: 'Unknown_Exercise',
+          name: 'Unknown Exercise',
+          equipment: 'cable',
+          imageUrl: null,
+        ),
+      ],
+    );
 
-      final container = ProviderContainer(
-        overrides: [
-          appDatabaseProvider.overrideWithValue(db),
-          substituteDatasourceProvider.overrideWithValue(mockDatasource),
-        ],
-      );
-      addTearDown(container.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        substituteDatasourceProvider.overrideWithValue(mockDatasource),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      final result = await container.read(
-        substitutesProvider('ex-uuid-1').future,
-      );
+    final result = await container.read(
+      substitutesProvider('ex-uuid-1').future,
+    );
 
-      expect(result, hasLength(2));
-      expect(result[0].name, 'Supino Reto com Halteres');
-      expect(result[1].name, 'Unknown Exercise');
-    },
-  );
+    expect(result, hasLength(2));
+    expect(result[0].name, 'Supino Reto com Halteres');
+    expect(result[1].name, 'Unknown Exercise');
+  });
 
   testWidgets(
     'showSubstitutionSheet exibe equipamento e nome traduzidos em pt-BR',

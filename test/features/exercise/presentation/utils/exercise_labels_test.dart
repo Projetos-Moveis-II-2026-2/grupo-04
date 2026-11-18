@@ -96,18 +96,24 @@ void main() {
       }
     });
 
-    test('devolve valor capitalizado para chave desconhecida e traço para vazio', () {
-      expect(muscleLabel('unknown muscle'), 'Unknown muscle');
-      expect(equipmentLabel('sled'), 'Sled');
-      expect(levelLabel('custom'), 'Custom');
-      expect(mechanicLabel('hybrid'), 'Hybrid');
-      expect(forceLabel('isometric'), 'Isometric');
-      expect(categoryLabel('mobility'), 'Mobility');
+    test(
+      'devolve valor capitalizado para chave desconhecida e traço para vazio',
+      () {
+        expect(muscleLabel('unknown muscle'), 'Unknown muscle');
+        expect(equipmentLabel('sled'), 'Sled');
+        expect(levelLabel('custom'), 'Custom');
+        expect(mechanicLabel('hybrid'), 'Hybrid');
+        expect(forceLabel('isometric'), 'Isometric');
+        expect(categoryLabel('mobility'), 'Mobility');
 
-      expect(muscleLabel(null), '—');
-      expect(muscleLabel('   '), '—');
-      expect(equipmentLabel(null, emptyFallback: 'Não informado'), 'Não informado');
-    });
+        expect(muscleLabel(null), '—');
+        expect(muscleLabel('   '), '—');
+        expect(
+          equipmentLabel(null, emptyFallback: 'Não informado'),
+          'Não informado',
+        );
+      },
+    );
 
     test('traduz listas de músculos separadas por vírgula', () {
       expect(muscleListLabel('chest, triceps'), 'Peito, Tríceps');
