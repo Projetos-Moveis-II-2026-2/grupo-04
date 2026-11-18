@@ -188,7 +188,7 @@ void main() {
           .length;
 
       expect(builtListItems, lessThan(100));
-      expect(builtListItems, lessThanOrEqualTo(kExercisePickerMaxResults));
+      expect(builtListItems, lessThanOrEqualTo(kExercisePickerPageSize));
 
       // Filtra por termo com 41 correspondências -> limitado a 30 no banco.
       final searchFieldFinder = find.byKey(
@@ -203,7 +203,7 @@ void main() {
       final limitedListView = tester.widget<ListView>(resultsListFinder);
       expect(
         limitedListView.semanticChildCount,
-        lessThanOrEqualTo(kExercisePickerMaxResults),
+        lessThanOrEqualTo(kExercisePickerPageSize),
       );
 
       // Busca específica retorna exatamente 1 item na lista de resultados.
@@ -349,10 +349,11 @@ void main() {
             throw Exception('falha ao carregar');
           }
         }),
-        workoutExerciseSearchProvider.overrideWith(
-          (ref, query) async => const [
-            ExerciseOption(id: 'agachamento', name: 'Agachamento'),
-          ],
+        workoutExerciseSearchProvider.overrideWithBuild(
+          (ref, notifier) async => const ExerciseSearchPageState(
+            items: [ExerciseOption(id: 'agachamento', name: 'Agachamento')],
+            hasMore: false,
+          ),
         ),
       ],
     );

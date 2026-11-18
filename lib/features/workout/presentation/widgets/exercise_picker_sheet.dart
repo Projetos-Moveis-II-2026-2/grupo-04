@@ -150,7 +150,7 @@ class _ExercisePickerSheetBodyState
     final asyncResults = ref.watch(workoutExerciseSearchProvider(_query));
     return switch (asyncResults) {
       AsyncValue(isLoading: true, hasValue: false) => _buildLoading(),
-      AsyncValue(:final value?) => _buildResults(context, value, theme),
+      AsyncValue(:final value?) => _buildResults(context, value.items, theme),
       AsyncValue(hasError: true) => _buildError(
         theme,
         onRetry: () => ref.invalidate(workoutExerciseSearchProvider(_query)),
