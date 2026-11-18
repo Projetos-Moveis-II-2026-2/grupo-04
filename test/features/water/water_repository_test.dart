@@ -280,35 +280,39 @@ void main() {
       expect(tuesday.totalMl, 0);
     });
 
-    test('watchLast7DaysSummary usa recordedAt quando date está vazio',
-        () async {
-      final fixedToday = DateTime(2026, 9, 16, 12, 0, 0);
-      final repo = WaterRepositoryImpl(
-        db: db,
-        syncQueue: syncQueue,
-        nowProvider: () => fixedToday,
-      );
+    test(
+      'watchLast7DaysSummary usa recordedAt quando date está vazio',
+      () async {
+        final fixedToday = DateTime(2026, 9, 16, 12, 0, 0);
+        final repo = WaterRepositoryImpl(
+          db: db,
+          syncQueue: syncQueue,
+          nowProvider: () => fixedToday,
+        );
 
-      const userId = 'user-empty-date';
-      await db.into(db.waterIntake).insert(
-        WaterIntakeCompanion.insert(
-          id: 'test-empty-date-1',
-          userId: userId,
-          amountMl: 700,
-          recordedAt: DateTime(2026, 9, 15, 20, 0, 0),
-          date: '',
-          synced: const Value(true),
-          updatedAt: DateTime.now(),
-        ),
-      );
+        const userId = 'user-empty-date';
+        await db
+            .into(db.waterIntake)
+            .insert(
+              WaterIntakeCompanion.insert(
+                id: 'test-empty-date-1',
+                userId: userId,
+                amountMl: 700,
+                recordedAt: DateTime(2026, 9, 15, 20, 0, 0),
+                date: '',
+                synced: const Value(true),
+                updatedAt: DateTime.now(),
+              ),
+            );
 
-      final summaries = await repo.watchLast7DaysSummary(userId).first;
+        final summaries = await repo.watchLast7DaysSummary(userId).first;
 
-      expect(summaries, hasLength(7));
-      expect(summaries[5].date.day, 15);
-      expect(summaries[5].totalMl, 700);
-      expect(summaries.last.isToday, isTrue);
-      expect(summaries.last.totalMl, 0);
-    });
+        expect(summaries, hasLength(7));
+        expect(summaries[5].date.day, 15);
+        expect(summaries[5].totalMl, 700);
+        expect(summaries.last.isToday, isTrue);
+        expect(summaries.last.totalMl, 0);
+      },
+    );
   });
 }
