@@ -55,3 +55,7 @@ app.*.map.json
 # serena tooling (local, not versioned)
 .serena/
 
+# Artefatos intermediários de tradução (#102)
+tool/translation/chunks/
+tool/translation/out/
+
