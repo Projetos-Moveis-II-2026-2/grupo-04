@@ -40,16 +40,24 @@ class _FakeActionFeedback extends ActionFeedback {
 class _SpyExerciseRepository implements IExerciseRepository {
   _SpyExerciseRepository({this.onSearch, this.onSync});
 
-  final Future<List<ExerciseOption>> Function(String query, int limit)?
+  final Future<List<ExerciseOption>> Function(
+    String query,
+    int limit,
+    int offset,
+  )?
   onSearch;
   final Future<void> Function()? onSync;
   int syncCalls = 0;
 
   @override
-  Future<List<ExerciseOption>> searchByName(String query, {int limit = 30}) {
+  Future<List<ExerciseOption>> searchByName(
+    String query, {
+    int limit = 30,
+    int offset = 0,
+  }) {
     final handler = onSearch;
     if (handler != null) {
-      return handler(query, limit);
+      return handler(query, limit, offset);
     }
     return Future.value(const []);
   }
@@ -371,7 +379,7 @@ void main() {
     final fastQuery = Completer<List<ExerciseOption>>();
 
     final spyRepo = _SpyExerciseRepository(
-      onSearch: (query, limit) {
+      onSearch: (query, limit, offset) {
         if (query.isEmpty) {
           return Future.value(const [
             ExerciseOption(id: 'init', name: 'Inicial'),
@@ -426,7 +434,7 @@ void main() {
     var seeded = false;
 
     final spyRepo = _SpyExerciseRepository(
-      onSearch: (query, limit) async {
+      onSearch: (query, limit, offset) async {
         if (!seeded) return const [];
         return const [ExerciseOption(id: 'ex-1', name: 'Remada Curvada')];
       },

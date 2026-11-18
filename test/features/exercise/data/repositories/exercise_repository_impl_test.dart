@@ -174,16 +174,21 @@ void main() {
 
   group('searchByName', () {
     test(
-      'should delegate lightweight query and limit to local datasource',
+      'should delegate lightweight query, limit and offset to local datasource',
       () async {
         const options = [ExerciseOption(id: 'ex-1', name: 'Supino Reto')];
-        when(() => mockLocal.searchByName('supino', limit: 15))
+        when(() => mockLocal.searchByName('supino', limit: 15, offset: 30))
             .thenAnswer((_) async => options);
 
-        final result = await repository.searchByName('supino', limit: 15);
+        final result = await repository.searchByName(
+          'supino',
+          limit: 15,
+          offset: 30,
+        );
 
         expect(result, options);
-        verify(() => mockLocal.searchByName('supino', limit: 15)).called(1);
+        verify(() => mockLocal.searchByName('supino', limit: 15, offset: 30))
+            .called(1);
       },
     );
   });

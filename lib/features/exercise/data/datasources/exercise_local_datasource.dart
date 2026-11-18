@@ -41,18 +41,22 @@ class ExerciseLocalDataSource {
   }
 
   /// Busca opções leves (`id` e `name`) diretamente no SQLite usando projeção
-  /// de colunas, `LIKE` case-insensitive e `LIMIT`.
+  /// de colunas, `LIKE` case-insensitive, `LIMIT` e `OFFSET`.
+  ///
+  /// Ordena por `name` com desempate por `id` para garantir paginação estável.
   Future<List<ExerciseOption>> searchByName(
     String query, {
     int limit = 30,
+    int offset = 0,
   }) async {
     if (limit <= 0) return const [];
+    final effectiveOffset = offset < 0 ? 0 : offset;
     final normalized = query.trim().toLowerCase();
     final table = _db.exerciseLibraryTable;
     final select = _db.selectOnly(table)
       ..addColumns([table.id, table.name])
-      ..orderBy([OrderingTerm.asc(table.name)])
-      ..limit(limit);
+      ..orderBy([OrderingTerm.asc(table.name), OrderingTerm.asc(table.id)])
+      ..limit(limit, offset: effectiveOffset);
 
     if (normalized.isNotEmpty) {
       final escaped = _escapeLikePattern(normalized);
