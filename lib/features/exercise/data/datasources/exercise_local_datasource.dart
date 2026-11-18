@@ -5,6 +5,8 @@ import '../../domain/entities/exercise.dart';
 import '../../domain/entities/exercise_option.dart';
 
 class ExerciseLocalDataSource {
+  static const int defaultInsertBatchSize = 200;
+
   final AppDatabase _db;
 
   ExerciseLocalDataSource(this._db);
@@ -75,16 +77,40 @@ class ExerciseLocalDataSource {
         .replaceAll('_', r'\_');
   }
 
-  /// Insert or replace multiple exercises
+  /// Retorna `true` se o catálogo local já possui ao menos um exercício.
+  Future<bool> hasExercises() async {
+    final table = _db.exerciseLibraryTable;
+    final row =
+        await (_db.selectOnly(table)
+              ..addColumns([table.id])
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
+  }
+
+  /// Insert or replace multiple exercises em lotes para evitar travamento da UI.
   Future<void> insertExercises(
-    List<ExerciseLibraryTableCompanion> exercises,
-  ) async {
-    await _db.batch((batch) {
-      batch.insertAll(
-        _db.exerciseLibraryTable,
-        exercises,
-        mode: InsertMode.insertOrReplace,
-      );
-    });
+    List<ExerciseLibraryTableCompanion> exercises, {
+    int batchSize = defaultInsertBatchSize,
+  }) async {
+    if (exercises.isEmpty) return;
+    final effectiveBatchSize = batchSize <= 0
+        ? defaultInsertBatchSize
+        : batchSize;
+
+    for (var i = 0; i < exercises.length; i += effectiveBatchSize) {
+      final end = (i + effectiveBatchSize).clamp(0, exercises.length);
+      final chunk = exercises.sublist(i, end);
+      await _db.batch((batch) {
+        batch.insertAll(
+          _db.exerciseLibraryTable,
+          chunk,
+          mode: InsertMode.insertOrReplace,
+        );
+      });
+      if (end < exercises.length) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
   }
 }

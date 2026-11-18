@@ -24,6 +24,7 @@ void main() {
   setUp(() {
     mockLocal = MockExerciseLocalDataSource();
     mockRemote = MockExerciseRemoteDataSourceFake();
+    when(() => mockLocal.hasExercises()).thenAnswer((_) async => false);
     repository = ExerciseRepositoryImpl(mockLocal, mockRemote);
   });
 
