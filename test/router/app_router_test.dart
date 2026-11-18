@@ -12,6 +12,8 @@ import 'package:olimpus/features/auth/presentation/pages/login_page.dart';
 import 'package:olimpus/features/auth/presentation/pages/settings_page.dart';
 import 'package:olimpus/features/auth/presentation/pages/splash_page.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
+import 'package:olimpus/features/profile/presentation/pages/onboarding_page.dart';
+import 'package:olimpus/features/profile/presentation/providers/profile_providers.dart';
 import 'package:olimpus/features/progress/presentation/pages/progress_page.dart';
 import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
 import 'package:olimpus/features/workout/presentation/pages/workout_list_page.dart';
@@ -25,12 +27,14 @@ Widget createTestApp({
   required StreamController<AppUser?> authController,
   required MockAuthRepository mockAuthRepo,
   required SharedPreferences prefs,
+  bool onboardingCompleted = true,
 }) {
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       authRepositoryProvider.overrideWithValue(mockAuthRepo),
       authStateProvider.overrideWith((ref) => authController.stream),
+      onboardingStatusProvider.overrideWith((ref) async => onboardingCompleted),
       userExercisesWithProgressProvider.overrideWith(
         (ref) => Stream.value(const []),
       ),
@@ -66,7 +70,9 @@ void main() {
     late SharedPreferences prefs;
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues({
+        'onboarding_completed_user-456': true,
+      });
       prefs = await SharedPreferences.getInstance();
       authController = StreamController<AppUser?>.broadcast();
       mockAuthRepo = MockAuthRepository();
@@ -255,5 +261,83 @@ void main() {
       // Barra inferior NÃO deve estar visível na tela de configurações
       expect(find.byType(NavigationBar), findsNothing);
     });
+
+    testWidgets(
+      'redireciona para OnboardingPage quando usuário autenticado possui onboarding pendente',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            authController: authController,
+            mockAuthRepo: mockAuthRepo,
+            prefs: prefs,
+            onboardingCompleted: false,
+          ),
+        );
+
+        authController.add(confirmedUser);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OnboardingPage), findsOneWidget);
+        expect(find.byType(ScaffoldWithNavBar), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'redireciona para /home quando usuário com onboarding concluído tenta acessar /onboarding',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            authController: authController,
+            mockAuthRepo: mockAuthRepo,
+            prefs: prefs,
+            onboardingCompleted: true,
+          ),
+        );
+
+        authController.add(confirmedUser);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(HomePage), findsOneWidget);
+
+        final router = ProviderScope.containerOf(
+          tester.element(find.byType(HomePage)),
+        ).read(appRouterProvider);
+
+        router.go('/onboarding');
+        await tester.pumpAndSettle();
+
+        expect(find.byType(HomePage), findsOneWidget);
+        expect(find.byType(OnboardingPage), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'redireciona para LoginPage quando usuário não autenticado tenta acessar /onboarding',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            authController: authController,
+            mockAuthRepo: mockAuthRepo,
+            prefs: prefs,
+            onboardingCompleted: false,
+          ),
+        );
+
+        authController.add(null);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(LoginPage), findsOneWidget);
+
+        final router = ProviderScope.containerOf(
+          tester.element(find.byType(LoginPage)),
+        ).read(appRouterProvider);
+
+        router.go('/onboarding');
+        await tester.pumpAndSettle();
+
+        expect(find.byType(LoginPage), findsOneWidget);
+        expect(find.byType(OnboardingPage), findsNothing);
+      },
+    );
   });
 }
