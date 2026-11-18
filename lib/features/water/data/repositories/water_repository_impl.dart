@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:olimpus/core/database/app_database.dart';
 import 'package:olimpus/core/database/sync/sync_queue_service.dart';
+import 'package:olimpus/core/utils/uuid.dart';
 
 import '../../domain/entities/daily_water_summary.dart';
 import '../../domain/entities/water_intake_record.dart';
@@ -101,7 +101,7 @@ class WaterRepositoryImpl implements IWaterRepository {
     final at = recordedAt ?? now;
     final local = at.toLocal();
     final localDateStr = _toLocalDateString(local);
-    final id = _generateUuid();
+    final id = generateUuid();
 
     final companion = WaterIntakeCompanion.insert(
       id: id,
@@ -190,13 +190,5 @@ class WaterRepositoryImpl implements IWaterRepository {
     );
   }
 
-  static String _generateUuid() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40; // RFC 4122 v4
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
-  }
 }
 
