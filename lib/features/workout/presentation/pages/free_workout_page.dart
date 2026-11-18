@@ -6,8 +6,9 @@ import 'package:olimpus/core/providers.dart';
 import 'package:olimpus/core/providers/action_feedback_provider.dart';
 import 'package:olimpus/core/utils/ui_feedback_extension.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
-import 'package:olimpus/features/exercise/domain/entities/exercise.dart';
-import 'package:olimpus/features/exercise/presentation/providers/exercise_providers.dart';
+import 'package:olimpus/features/exercise/domain/entities/exercise_option.dart';
+import 'package:olimpus/features/workout/presentation/providers/free_workout_exercises_provider.dart';
+import 'package:olimpus/features/workout/presentation/widgets/exercise_picker_sheet.dart';
 
 import '../../data/repositories/free_workout_repository.dart';
 
@@ -22,20 +23,6 @@ final _completedSetsProvider = StreamProvider.autoDispose.family<int, String>((
   return ref
       .watch(_freeWorkoutRepositoryProvider)
       .watchCompletedSetCount(userId);
-});
-
-final _workoutExercisesProvider = StreamProvider.autoDispose<List<Exercise>>((
-  ref,
-) {
-  final repository = ref.watch(exerciseRepositoryProvider);
-  var loadedCatalog = false;
-  return repository.watchExercises().asyncMap((exercises) async {
-    if (!loadedCatalog && exercises.isEmpty) {
-      loadedCatalog = true;
-      await repository.syncExercises();
-    }
-    return exercises;
-  });
 });
 
 class FreeWorkoutPage extends ConsumerWidget {
@@ -73,7 +60,7 @@ class _FreeWorkoutState extends ConsumerState<_FreeWorkout> {
     seconds: _restDuration.inSeconds,
     running: false,
   ));
-  Exercise? _exercise;
+  ExerciseOption? _exercise;
   bool _exerciseInvalid = false;
   bool _saving = false;
   Timer? _timer;
@@ -90,6 +77,17 @@ class _FreeWorkoutState extends ConsumerState<_FreeWorkout> {
 
   double? _parseWeight(String? value) =>
       double.tryParse((value ?? '').trim().replaceAll(',', '.'));
+
+  Future<void> _pickExercise() async {
+    if (_saving) return;
+    final selected = await showExercisePickerSheet(context);
+    if (!mounted || selected == null) return;
+    setState(() {
+      _exercise = selected;
+      _exerciseInput.text = selected.name;
+      _exerciseInvalid = false;
+    });
+  }
 
   Future<void> _completeSet() async {
     if (_saving) return;
@@ -180,9 +178,11 @@ class _FreeWorkoutState extends ConsumerState<_FreeWorkout> {
 
   @override
   Widget build(BuildContext context) {
-    final exercises = ref.watch(_workoutExercisesProvider);
+    final catalogReady = ref.watch(workoutCatalogReadyProvider);
     final count = ref.watch(_completedSetsProvider(widget.userId));
     const buttonStyle = ButtonStyle(enableFeedback: false);
+    final isCatalogLoading = catalogReady.isLoading && !catalogReady.hasValue;
+    final hasCatalogError = catalogReady.hasError && !catalogReady.hasValue;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -194,80 +194,78 @@ class _FreeWorkoutState extends ConsumerState<_FreeWorkout> {
           error: (_, _) => const Text('Erro ao carregar séries.'),
         ),
         const SizedBox(height: 16),
-        exercises.when(
-          data: (options) => options.isEmpty
-              ? const Text('Nenhum exercício disponível.')
-              : Form(
-                  key: _form,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      DropdownMenu<Exercise>(
-                        controller: _exerciseInput,
-                        label: const Text('Exercício'),
-                        expandedInsets: EdgeInsets.zero,
-                        enableFilter: true,
-                        requestFocusOnTap: true,
-                        enabled: !_saving,
-                        errorText: _exerciseInvalid
-                            ? 'Selecione um exercício.'
-                            : null,
-                        dropdownMenuEntries: [
-                          for (final exercise in options)
-                            DropdownMenuEntry(
-                              value: exercise,
-                              label: exercise.name,
-                            ),
-                        ],
-                        onSelected: (exercise) => setState(() {
-                          _exercise = exercise;
-                          _exerciseInvalid = false;
-                        }),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _weight,
-                        enabled: !_saving,
-                        decoration: const InputDecoration(
-                          labelText: 'Carga (kg)',
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: (value) {
-                          final weight = _parseWeight(value);
-                          return weight == null ||
-                                  !weight.isFinite ||
-                                  weight < 0
-                              ? 'Informe uma carga válida.'
-                              : null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _reps,
-                        enabled: !_saving,
-                        decoration: const InputDecoration(
-                          labelText: 'Repetições',
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) =>
-                            (int.tryParse(value?.trim() ?? '') ?? 0) > 0
-                            ? null
-                            : 'Informe um número de repetições maior que zero.',
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        style: buttonStyle,
-                        icon: const Icon(Icons.check),
-                        label: const Text('Concluir série'),
-                        onPressed: _saving ? null : _completeSet,
-                      ),
-                    ],
-                  ),
+        Form(
+          key: _form,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                key: const Key('free_workout_exercise_field'),
+                controller: _exerciseInput,
+                readOnly: true,
+                showCursor: false,
+                mouseCursor: _saving
+                    ? SystemMouseCursors.basic
+                    : SystemMouseCursors.click,
+                enabled: !_saving,
+                onTap: _saving ? null : _pickExercise,
+                decoration: InputDecoration(
+                  labelText: 'Exercício',
+                  helperText: isCatalogLoading
+                      ? 'Carregando catálogo…'
+                      : hasCatalogError
+                      ? 'Erro ao carregar exercícios.'
+                      : null,
+                  errorText: _exerciseInvalid
+                      ? 'Selecione um exercício.'
+                      : null,
+                  suffixIcon: isCatalogLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : const Icon(Icons.arrow_drop_down),
                 ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => const Text('Erro ao carregar exercícios.'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _weight,
+                enabled: !_saving,
+                decoration: const InputDecoration(labelText: 'Carga (kg)'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: (value) {
+                  final weight = _parseWeight(value);
+                  return weight == null || !weight.isFinite || weight < 0
+                      ? 'Informe uma carga válida.'
+                      : null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _reps,
+                enabled: !_saving,
+                decoration: const InputDecoration(labelText: 'Repetições'),
+                keyboardType: TextInputType.number,
+                validator: (value) =>
+                    (int.tryParse(value?.trim() ?? '') ?? 0) > 0
+                    ? null
+                    : 'Informe um número de repetições maior que zero.',
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                style: buttonStyle,
+                icon: const Icon(Icons.check),
+                label: const Text('Concluir série'),
+                onPressed: _saving ? null : _completeSet,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         ValueListenableBuilder(

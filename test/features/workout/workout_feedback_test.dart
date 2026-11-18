@@ -10,7 +10,6 @@ import 'package:olimpus/core/providers/action_feedback_provider.dart';
 import 'package:olimpus/features/auth/domain/entities/app_user.dart';
 import 'package:olimpus/features/auth/presentation/pages/settings_page.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
-import 'package:olimpus/features/exercise/domain/entities/exercise.dart';
 import 'package:olimpus/features/workout/presentation/pages/free_workout_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -115,7 +114,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(effects, isEmpty);
 
-      await tester.tap(find.byType(DropdownMenu<Exercise>));
+      await tester.tap(find.byKey(const Key('free_workout_exercise_field')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Agachamento'));
       await tester.pumpAndSettle();
