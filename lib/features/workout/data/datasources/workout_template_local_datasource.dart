@@ -26,33 +26,37 @@ class WorkoutTemplateLocalDataSource {
 
   /// Observa todas as fichas do usuário [userId] com seus exercícios ordenados por `sort_order`.
   Stream<List<WorkoutTemplateEntity>> watchTemplates(String userId) {
-    final query = (_db.select(_db.workoutTemplates)
-          ..where((t) => t.userId.equals(userId))
-          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
-        .join([
-          leftOuterJoin(
-            _db.templateExercises,
-            _db.templateExercises.templateId.equalsExp(_db.workoutTemplates.id),
-          ),
-          leftOuterJoin(
-            _db.exerciseLibraryTable,
-            _db.exerciseLibraryTable.id.equalsExp(
-                  _db.templateExercises.exerciseId,
-                ) |
-                _db.exerciseLibraryTable.externalId.equalsExp(
-                  _db.templateExercises.exerciseId,
+    final query =
+        (_db.select(_db.workoutTemplates)
+              ..where((t) => t.userId.equals(userId))
+              ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+            .join([
+              leftOuterJoin(
+                _db.templateExercises,
+                _db.templateExercises.templateId.equalsExp(
+                  _db.workoutTemplates.id,
                 ),
-          ),
-        ]);
+              ),
+              leftOuterJoin(
+                _db.exerciseLibraryTable,
+                _db.exerciseLibraryTable.id.equalsExp(
+                      _db.templateExercises.exerciseId,
+                    ) |
+                    _db.exerciseLibraryTable.externalId.equalsExp(
+                      _db.templateExercises.exerciseId,
+                    ),
+              ),
+            ]);
 
     return query.watch().map(_groupJoinedRows);
   }
 
   /// Busca uma ficha pelo [templateId] com seus exercícios ordenados.
   Future<WorkoutTemplateEntity?> getTemplateById(String templateId) async {
-    final query = (_db.select(_db.workoutTemplates)
-          ..where((t) => t.id.equals(templateId)))
-        .join([
+    final query =
+        (_db.select(
+          _db.workoutTemplates,
+        )..where((t) => t.id.equals(templateId))).join([
           leftOuterJoin(
             _db.templateExercises,
             _db.templateExercises.templateId.equalsExp(_db.workoutTemplates.id),
@@ -194,27 +198,25 @@ class WorkoutTemplateLocalDataSource {
   /// Observa o catálogo local (`exercise_library`) ordenado por nome.
   Stream<List<CatalogExercise>> watchCatalogExercises() {
     return (_db.select(
-          _db.exerciseLibraryTable,
-        )..orderBy([(e) => OrderingTerm.asc(e.name)]))
-        .watch()
-        .map(
-          (rows) => rows
-              .map(
-                (r) => CatalogExercise(
-                  id: (r.remoteId != null && UuidV4.isValid(r.remoteId!))
-                      ? r.remoteId!
-                      : r.id,
-                  externalId: r.externalId,
-                  name: r.name,
-                  primaryMuscles: r.primaryMuscles,
-                  secondaryMuscles: r.secondaryMuscles,
-                  equipment: r.equipment,
-                  level: r.level,
-                  imageUrls: r.imageUrls,
-                ),
-              )
-              .toList(growable: false),
-        );
+      _db.exerciseLibraryTable,
+    )..orderBy([(e) => OrderingTerm.asc(e.name)])).watch().map(
+      (rows) => rows
+          .map(
+            (r) => CatalogExercise(
+              id: (r.remoteId != null && UuidV4.isValid(r.remoteId!))
+                  ? r.remoteId!
+                  : r.id,
+              externalId: r.externalId,
+              name: r.name,
+              primaryMuscles: r.primaryMuscles,
+              secondaryMuscles: r.secondaryMuscles,
+              equipment: r.equipment,
+              level: r.level,
+              imageUrls: r.imageUrls,
+            ),
+          )
+          .toList(growable: false),
+    );
   }
 
   /// Conta quantos exercícios no catálogo local já possuem UUID válido do Supabase.
@@ -247,22 +249,20 @@ class WorkoutTemplateLocalDataSource {
           )..where((e) => e.id.equals(existingByExt.id))).go();
         }
 
-        await _db
-            .into(_db.exerciseLibraryTable)
-            .insertOnConflictUpdate(entry);
+        await _db.into(_db.exerciseLibraryTable).insertOnConflictUpdate(entry);
       }
     });
   }
 
   Future<String> _resolveLocalExerciseUuid(String idOrExternalId) async {
     if (UuidV4.isValid(idOrExternalId)) return idOrExternalId;
-    final row = await (_db.select(
-      _db.exerciseLibraryTable,
-    )..where(
-          (e) =>
-              e.id.equals(idOrExternalId) |
-              e.externalId.equals(idOrExternalId),
-        )).getSingleOrNull();
+    final row =
+        await (_db.select(_db.exerciseLibraryTable)..where(
+              (e) =>
+                  e.id.equals(idOrExternalId) |
+                  e.externalId.equals(idOrExternalId),
+            ))
+            .getSingleOrNull();
     if (row == null) return idOrExternalId;
     if (row.remoteId != null && UuidV4.isValid(row.remoteId!)) {
       return row.remoteId!;
@@ -305,19 +305,22 @@ class WorkoutTemplateLocalDataSource {
       }
     }
 
-    return templatesById.values.map((tpl) {
-      final items =
-          itemsByTemplateId[tpl.id]?.values.toList() ?? <TemplateExerciseItem>[];
-      items.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-      return WorkoutTemplateEntity(
-        id: tpl.id,
-        userId: tpl.userId,
-        name: tpl.name,
-        description: tpl.description,
-        exercises: items,
-        synced: tpl.synced,
-        updatedAt: tpl.updatedAt,
-      );
-    }).toList(growable: false);
+    return templatesById.values
+        .map((tpl) {
+          final items =
+              itemsByTemplateId[tpl.id]?.values.toList() ??
+              <TemplateExerciseItem>[];
+          items.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+          return WorkoutTemplateEntity(
+            id: tpl.id,
+            userId: tpl.userId,
+            name: tpl.name,
+            description: tpl.description,
+            exercises: items,
+            synced: tpl.synced,
+            updatedAt: tpl.updatedAt,
+          );
+        })
+        .toList(growable: false);
   }
 }

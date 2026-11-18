@@ -10,11 +10,7 @@ import 'package:olimpus/features/workout/presentation/widgets/exercise_picker_sh
 import 'package:olimpus/features/workout/presentation/widgets/template_card.dart';
 
 class TemplateFormPage extends ConsumerStatefulWidget {
-  const TemplateFormPage({
-    super.key,
-    this.templateId,
-    this.initialTemplate,
-  });
+  const TemplateFormPage({super.key, this.templateId, this.initialTemplate});
 
   final String? templateId;
   final WorkoutTemplateEntity? initialTemplate;
@@ -38,8 +34,7 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
   void initState() {
     super.initState();
     final initial = widget.initialTemplate;
-    _resolvedTemplateId =
-        initial?.id ?? widget.templateId ?? UuidV4.generate();
+    _resolvedTemplateId = initial?.id ?? widget.templateId ?? UuidV4.generate();
     _nameController = TextEditingController(text: initial?.name ?? '');
     _descriptionController = TextEditingController(
       text: initial?.description ?? '',
@@ -98,11 +93,8 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
     });
   }
 
-  void _onReorder(int oldIndex, int newIndex) {
+  void _onReorderItem(int oldIndex, int newIndex) {
     setState(() {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
       final moved = _exercises.removeAt(oldIndex);
       _exercises.insert(newIndex, moved);
       _reindexExercises();
@@ -133,6 +125,19 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
     });
   }
 
+  void _navigateBack() {
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      if (router.canPop()) {
+        router.pop();
+      } else {
+        router.go('/');
+      }
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
+
   Future<void> _onSavePressed() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -148,10 +153,7 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
           : _descriptionController.text.trim(),
       exercises: [
         for (var i = 0; i < _exercises.length; i++)
-          _exercises[i].copyWith(
-            templateId: _resolvedTemplateId,
-            sortOrder: i,
-          ),
+          _exercises[i].copyWith(templateId: _resolvedTemplateId, sortOrder: i),
       ],
       synced: false,
       updatedAt: DateTime.now().toUtc(),
@@ -175,11 +177,7 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
           ),
         ),
       );
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/');
-      }
+      _navigateBack();
     } else {
       final err = ref.read(workoutTemplateActionNotifierProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -206,14 +204,9 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
     if (!mounted) return;
 
     if (ok) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Ficha excluída.')));
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/');
-      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Ficha excluída.')));
+      _navigateBack();
     }
   }
 
@@ -370,7 +363,7 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
             ),
           ),
           itemCount: _exercises.length,
-          onReorder: _onReorder,
+          onReorderItem: _onReorderItem,
           itemBuilder: (context, index) {
             final item = _exercises[index];
             return Card(
@@ -478,9 +471,7 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: Text(
-              widget.isEditing ? 'Salvar alterações' : 'Criar ficha',
-            ),
+            label: Text(widget.isEditing ? 'Salvar alterações' : 'Criar ficha'),
           ),
         ),
       ),

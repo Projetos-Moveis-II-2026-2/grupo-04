@@ -64,15 +64,14 @@ final deleteWorkoutTemplateUseCaseProvider = Provider<DeleteWorkoutTemplate>((
 // ── Streams & Queries ──
 
 /// Stream reativa das fichas do usuário autenticado.
-final userWorkoutTemplatesProvider = StreamProvider<List<WorkoutTemplateEntity>>(
-  (ref) {
-    final user = ref.watch(currentUserProvider);
-    if (user == null) {
-      return Stream.value(const <WorkoutTemplateEntity>[]);
-    }
-    return ref.watch(watchWorkoutTemplatesUseCaseProvider)(user.id);
-  },
-);
+final userWorkoutTemplatesProvider =
+    StreamProvider<List<WorkoutTemplateEntity>>((ref) {
+      final user = ref.watch(currentUserProvider);
+      if (user == null) {
+        return Stream.value(const <WorkoutTemplateEntity>[]);
+      }
+      return ref.watch(watchWorkoutTemplatesUseCaseProvider)(user.id);
+    });
 
 /// Busca uma ficha pelo ID para tela de edição.
 final workoutTemplateByIdProvider =

@@ -82,9 +82,7 @@ void main() {
               (ref) => fakeRepo.watchTemplates('u1'),
             ),
           ],
-          child: const MaterialApp(
-            home: Scaffold(body: TemplatesListView()),
-          ),
+          child: const MaterialApp(home: Scaffold(body: TemplatesListView())),
         ),
       );
       await tester.pumpAndSettle();
@@ -100,7 +98,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Excluir ficha'), findsOneWidget);
-      expect(find.textContaining('Tem certeza que deseja excluir'), findsOneWidget);
+      expect(
+        find.textContaining('Tem certeza que deseja excluir'),
+        findsOneWidget,
+      );
 
       // Cancela primeiro
       await tester.tap(find.text('Cancelar'));

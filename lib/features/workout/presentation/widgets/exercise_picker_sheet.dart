@@ -7,9 +7,7 @@ import 'package:olimpus/features/workout/domain/entities/catalog_exercise.dart';
 import 'package:olimpus/features/workout/presentation/providers/workout_template_providers.dart';
 
 /// Abre o modal para buscar e selecionar exercícios da biblioteca (`exercise_library`).
-Future<List<CatalogExercise>?> showExercisePickerSheet(
-  BuildContext context,
-) {
+Future<List<CatalogExercise>?> showExercisePickerSheet(BuildContext context) {
   return showModalBottomSheet<List<CatalogExercise>>(
     context: context,
     isScrollControlled: true,
@@ -94,25 +92,27 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
   }
 
   List<CatalogExercise> _filterExercises(List<CatalogExercise> all) {
-    return all.where((exercise) {
-      final matchesQuery =
-          _searchQuery.isEmpty ||
-          exercise.name.toLowerCase().contains(_searchQuery);
-      if (!matchesQuery) return false;
+    return all
+        .where((exercise) {
+          final matchesQuery =
+              _searchQuery.isEmpty ||
+              exercise.name.toLowerCase().contains(_searchQuery);
+          if (!matchesQuery) return false;
 
-      if (_selectedMuscleGroup == null) return true;
-      final englishKeys =
-          catalogMuscleGroupTranslation[_selectedMuscleGroup!] ?? const [];
-      final hasPrimary = exercise.primaryMuscleList.any(
-        (m) => englishKeys.contains(m.toLowerCase()),
-      );
-      final hasSecondary =
-          exercise.secondaryMuscles != null &&
-          englishKeys.any(
-            (k) => exercise.secondaryMuscles!.toLowerCase().contains(k),
+          if (_selectedMuscleGroup == null) return true;
+          final englishKeys =
+              catalogMuscleGroupTranslation[_selectedMuscleGroup!] ?? const [];
+          final hasPrimary = exercise.primaryMuscleList.any(
+            (m) => englishKeys.contains(m.toLowerCase()),
           );
-      return hasPrimary || hasSecondary;
-    }).toList(growable: false);
+          final hasSecondary =
+              exercise.secondaryMuscles != null &&
+              englishKeys.any(
+                (k) => exercise.secondaryMuscles!.toLowerCase().contains(k),
+              );
+          return hasPrimary || hasSecondary;
+        })
+        .toList(growable: false);
   }
 
   @override

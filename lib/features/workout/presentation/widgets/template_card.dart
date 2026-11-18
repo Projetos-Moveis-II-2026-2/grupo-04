@@ -116,10 +116,7 @@ class TemplateCard extends StatelessWidget {
                     onPressed: onEdit,
                   ),
                   IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: colorScheme.error,
-                    ),
+                    icon: Icon(Icons.delete_outline, color: colorScheme.error),
                     tooltip: 'Excluir ficha',
                     onPressed: () async {
                       final confirmed =

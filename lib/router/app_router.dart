@@ -17,13 +17,14 @@ import '../features/workout/presentation/pages/templates_page.dart';
 /// pertence à Issue #33.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
-  
+
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
       final user = authState.value;
       final isLoggedIn = user != null && user.isEmailConfirmed;
-      final isAuthRoute = state.matchedLocation.startsWith('/login') ||
+      final isAuthRoute =
+          state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register') ||
           state.matchedLocation.startsWith('/confirmation') ||
           state.matchedLocation.startsWith('/callback') ||
@@ -32,10 +33,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation.startsWith('/reset-password');
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
-      
+
       // Se estiver logado, não permitir rotas de auth, EXCETO o reset-password
       // (pois o link de recovery faz login automático do usuário nos bastidores)
-      if (isLoggedIn && isAuthRoute && !state.matchedLocation.startsWith('/reset-password')) {
+      if (isLoggedIn &&
+          isAuthRoute &&
+          !state.matchedLocation.startsWith('/reset-password')) {
         return '/';
       }
 
@@ -44,21 +47,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', builder: (context, state) => const HomePage()),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-      GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterPage(),
+      ),
       GoRoute(
         path: '/confirmation',
         builder: (context, state) => ConfirmationPendingPage(
           email: state.uri.queryParameters['email'] ?? '',
         ),
       ),
-      GoRoute(
-        path: '/callback',
-        redirect: (context, state) => '/',
-      ),
-      GoRoute(
-        path: '/auth/callback',
-        redirect: (context, state) => '/',
-      ),
+      GoRoute(path: '/callback', redirect: (context, state) => '/'),
+      GoRoute(path: '/auth/callback', redirect: (context, state) => '/'),
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordPage(),

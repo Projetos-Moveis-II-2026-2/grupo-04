@@ -10,12 +10,10 @@ import 'package:olimpus/features/workout/domain/repositories/i_workout_template_
 
 class WorkoutTemplateRepositoryImpl implements IWorkoutTemplateRepository {
   WorkoutTemplateRepositoryImpl({
-    required WorkoutTemplateLocalDataSource localDataSource,
-    required SyncQueueService syncQueueService,
-    IExerciseCatalogRemoteDataSource? catalogRemoteDataSource,
-  }) : _localDataSource = localDataSource,
-       _syncQueueService = syncQueueService,
-       _catalogRemoteDataSource = catalogRemoteDataSource;
+    required this._localDataSource,
+    required this._syncQueueService,
+    this._catalogRemoteDataSource,
+  });
 
   final WorkoutTemplateLocalDataSource _localDataSource;
   final SyncQueueService _syncQueueService;

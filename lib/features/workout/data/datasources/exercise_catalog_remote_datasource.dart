@@ -28,33 +28,38 @@ class SupabaseExerciseCatalogRemoteDataSource
         .limit(1000);
 
     final now = DateTime.now().toUtc();
-    return rows.cast<Map<String, dynamic>>().map((row) {
-      final id = row['id'] as String;
-      final externalId = (row['external_id'] as String?) ?? id;
-      final name = (row['name'] as String?) ?? externalId;
-      final createdAtStr = row['created_at'] as String?;
-      final updatedAt = createdAtStr != null
-          ? (DateTime.tryParse(createdAtStr) ?? now)
-          : now;
+    return rows
+        .cast<Map<String, dynamic>>()
+        .map((row) {
+          final id = row['id'] as String;
+          final externalId = (row['external_id'] as String?) ?? id;
+          final name = (row['name'] as String?) ?? externalId;
+          final createdAtStr = row['created_at'] as String?;
+          final updatedAt = createdAtStr != null
+              ? (DateTime.tryParse(createdAtStr) ?? now)
+              : now;
 
-      return ExerciseLibraryTableCompanion.insert(
-        id: id,
-        remoteId: Value(id),
-        externalId: externalId,
-        name: name,
-        force: Value(row['force'] as String?),
-        level: Value(row['level'] as String?),
-        mechanic: Value(row['mechanic'] as String?),
-        equipment: Value(row['equipment'] as String?),
-        primaryMuscles: Value(_joinArray(row['primary_muscles'])),
-        secondaryMuscles: Value(_joinArray(row['secondary_muscles'])),
-        instructions: Value(_joinArray(row['instructions'], separator: '\n')),
-        category: Value(row['category'] as String?),
-        imageUrls: Value(_normalizeImageUrls(row['image_urls'])),
-        synced: const Value(true),
-        updatedAt: updatedAt,
-      );
-    }).toList(growable: false);
+          return ExerciseLibraryTableCompanion.insert(
+            id: id,
+            remoteId: Value(id),
+            externalId: externalId,
+            name: name,
+            force: Value(row['force'] as String?),
+            level: Value(row['level'] as String?),
+            mechanic: Value(row['mechanic'] as String?),
+            equipment: Value(row['equipment'] as String?),
+            primaryMuscles: Value(_joinArray(row['primary_muscles'])),
+            secondaryMuscles: Value(_joinArray(row['secondary_muscles'])),
+            instructions: Value(
+              _joinArray(row['instructions'], separator: '\n'),
+            ),
+            category: Value(row['category'] as String?),
+            imageUrls: Value(_normalizeImageUrls(row['image_urls'])),
+            synced: const Value(true),
+            updatedAt: updatedAt,
+          );
+        })
+        .toList(growable: false);
   }
 
   @override

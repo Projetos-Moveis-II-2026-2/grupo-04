@@ -86,10 +86,8 @@ class TemplatesListView extends ConsumerWidget {
             final tpl = templates[index];
             return TemplateCard(
               template: tpl,
-              onEdit: () => context.push(
-                '/templates/${tpl.id}/edit',
-                extra: tpl,
-              ),
+              onEdit: () =>
+                  context.push('/templates/${tpl.id}/edit', extra: tpl),
               onDelete: () async {
                 final ok = await ref
                     .read(workoutTemplateActionNotifierProvider.notifier)

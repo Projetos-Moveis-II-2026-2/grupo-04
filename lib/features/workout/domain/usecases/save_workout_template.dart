@@ -13,10 +13,7 @@ class SaveWorkoutTemplate {
     }
     final normalizedExercises = [
       for (var i = 0; i < template.exercises.length; i++)
-        template.exercises[i].copyWith(
-          templateId: template.id,
-          sortOrder: i,
-        ),
+        template.exercises[i].copyWith(templateId: template.id, sortOrder: i),
     ];
     final normalizedTemplate = template.copyWith(
       name: trimmedName,
