@@ -40,7 +40,12 @@ class LocalSupabase {
   static const _testPassword = 'OlimpusTest#56';
 
   SupabaseClient newClient() {
-    final client = SupabaseClient(_url, _anonKey);
+    // PKCE (padrão) exige asyncStorage; em testes usamos o fluxo implicit.
+    final client = SupabaseClient(
+      _url,
+      _anonKey,
+      authOptions: const AuthClientOptions(authFlowType: AuthFlowType.implicit),
+    );
     _clients.add(client);
     return client;
   }
