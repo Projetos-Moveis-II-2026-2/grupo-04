@@ -15,6 +15,7 @@ import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart
 import 'package:olimpus/features/profile/presentation/pages/onboarding_page.dart';
 import 'package:olimpus/features/profile/presentation/providers/profile_providers.dart';
 import 'package:olimpus/features/progress/presentation/pages/progress_page.dart';
+import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
 import 'package:olimpus/features/workout/presentation/pages/workout_list_page.dart';
 import 'package:olimpus/router/app_router.dart';
 import 'package:olimpus/router/scaffold_with_nav_bar.dart';
@@ -34,6 +35,10 @@ Widget createTestApp({
       authRepositoryProvider.overrideWithValue(mockAuthRepo),
       authStateProvider.overrideWith((ref) => authController.stream),
       onboardingStatusProvider.overrideWith((ref) async => onboardingCompleted),
+      userExercisesWithProgressProvider.overrideWith(
+        (ref) => Stream.value(const []),
+      ),
+      hasDemoDataProgressionProvider.overrideWith((ref) => Stream.value(false)),
     ],
     child: Consumer(
       builder: (context, ref, _) {
