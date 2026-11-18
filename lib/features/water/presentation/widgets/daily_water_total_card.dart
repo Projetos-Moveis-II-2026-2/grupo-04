@@ -100,8 +100,10 @@ class DailyWaterTotalCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: percentage >= 100
                         ? Colors.green.withValues(alpha: 0.2)
@@ -163,4 +165,3 @@ class DailyWaterTotalCard extends StatelessWidget {
     );
   }
 }
-

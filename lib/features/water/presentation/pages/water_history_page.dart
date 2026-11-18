@@ -67,8 +67,9 @@ class WaterHistoryPage extends ConsumerWidget {
           final user = ref.read(currentUserProvider);
           if (user != null) {
             try {
-              final syncService =
-                  await ref.read(initialSyncServiceProvider.future);
+              final syncService = await ref.read(
+                initialSyncServiceProvider.future,
+              );
               await syncService.pullInitial(force: true);
             } catch (_) {}
             try {
@@ -113,10 +114,9 @@ class WaterHistoryPage extends ConsumerWidget {
               _QuickAddButtonsRow(
                 onAdd: (amount) async {
                   if (user == null) return;
-                  await ref.read(waterRepositoryProvider).addWaterIntake(
-                        userId: user.id,
-                        amountMl: amount,
-                      );
+                  await ref
+                      .read(waterRepositoryProvider)
+                      .addWaterIntake(userId: user.id, amountMl: amount);
                   unawaited(ref.read(syncQueueServiceProvider).processQueue());
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -134,10 +134,8 @@ class WaterHistoryPage extends ConsumerWidget {
 
               // 2. Mini gráfico da semana
               weeklyAsync.when(
-                data: (summaries) => WeeklyWaterChart(
-                  summaries: summaries,
-                  dailyGoalMl: goal,
-                ),
+                data: (summaries) =>
+                    WeeklyWaterChart(summaries: summaries, dailyGoalMl: goal),
                 loading: () => const SizedBox(
                   height: 180,
                   child: Center(child: CircularProgressIndicator()),
@@ -157,7 +155,9 @@ class WaterHistoryPage extends ConsumerWidget {
                 data: (entries) => TodayWaterEntriesList(
                   entries: entries,
                   onDelete: (id) async {
-                    await ref.read(waterRepositoryProvider).deleteWaterIntake(id);
+                    await ref
+                        .read(waterRepositoryProvider)
+                        .deleteWaterIntake(id);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -281,10 +281,7 @@ class WaterHistoryPage extends ConsumerWidget {
 }
 
 class _QuickAddButtonsRow extends StatelessWidget {
-  const _QuickAddButtonsRow({
-    required this.onAdd,
-    required this.onCustom,
-  });
+  const _QuickAddButtonsRow({required this.onAdd, required this.onCustom});
 
   final void Function(int amount) onAdd;
   final VoidCallback onCustom;
@@ -337,4 +334,3 @@ class _QuickAddButtonsRow extends StatelessWidget {
     );
   }
 }
-

@@ -24,4 +24,3 @@ class DailyWaterSummary extends Equatable {
   @override
   List<Object?> get props => [date, totalMl, dayOfWeekAbbr, isToday];
 }
-

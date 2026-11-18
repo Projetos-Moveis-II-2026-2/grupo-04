@@ -40,53 +40,53 @@ void main() {
   });
 
   group('WaterRepositoryImpl', () {
-    test('corte entre dias: registros às 23:59 e 00:01 caem em dias diferentes',
-        () async {
-      // Definimos o "hoje" fixo como 2026-09-16 12:00:00 (local)
-      final fixedToday = DateTime(2026, 9, 16, 12, 0, 0);
-      final repo = WaterRepositoryImpl(
-        db: db,
-        syncQueue: syncQueue,
-        nowProvider: () => fixedToday,
-      );
-
-      const userId = 'user-1';
-
-      // Registro 1: ontem às 23:59:50
-      await repo.addWaterIntake(
-        userId: userId,
-        amountMl: 300,
-        recordedAt: DateTime(2026, 9, 15, 23, 59, 50),
-      );
-
-      // Registro 2: hoje à 00:00:10
-      await repo.addWaterIntake(
-        userId: userId,
-        amountMl: 250,
-        recordedAt: DateTime(2026, 9, 16, 0, 0, 10),
-      );
-
-      // Registro 3: hoje às 11:30:00
-      await repo.addWaterIntake(
-        userId: userId,
-        amountMl: 500,
-        recordedAt: DateTime(2026, 9, 16, 11, 30, 0),
-      );
-
-      // watchTodayEntries deve conter apenas os registros do dia 16
-      final todayEntries = await repo.watchTodayEntries(userId).first;
-      expect(todayEntries, hasLength(2));
-      expect(todayEntries[0].amountMl, 250);
-      expect(todayEntries[1].amountMl, 500);
-
-      // watchTodayTotal deve somar apenas os registros de hoje (250 + 500 = 750)
-      final todayTotal = await repo.watchTodayTotal(userId).first;
-      expect(todayTotal, 750);
-    });
-
     test(
-        'fuso horário: registros sincronizados em UTC são agrupados pelo fuso local',
-        () async {
+      'corte entre dias: registros às 23:59 e 00:01 caem em dias diferentes',
+      () async {
+        // Definimos o "hoje" fixo como 2026-09-16 12:00:00 (local)
+        final fixedToday = DateTime(2026, 9, 16, 12, 0, 0);
+        final repo = WaterRepositoryImpl(
+          db: db,
+          syncQueue: syncQueue,
+          nowProvider: () => fixedToday,
+        );
+
+        const userId = 'user-1';
+
+        // Registro 1: ontem às 23:59:50
+        await repo.addWaterIntake(
+          userId: userId,
+          amountMl: 300,
+          recordedAt: DateTime(2026, 9, 15, 23, 59, 50),
+        );
+
+        // Registro 2: hoje à 00:00:10
+        await repo.addWaterIntake(
+          userId: userId,
+          amountMl: 250,
+          recordedAt: DateTime(2026, 9, 16, 0, 0, 10),
+        );
+
+        // Registro 3: hoje às 11:30:00
+        await repo.addWaterIntake(
+          userId: userId,
+          amountMl: 500,
+          recordedAt: DateTime(2026, 9, 16, 11, 30, 0),
+        );
+
+        // watchTodayEntries deve conter apenas os registros do dia 16
+        final todayEntries = await repo.watchTodayEntries(userId).first;
+        expect(todayEntries, hasLength(2));
+        expect(todayEntries[0].amountMl, 250);
+        expect(todayEntries[1].amountMl, 500);
+
+        // watchTodayTotal deve somar apenas os registros de hoje (250 + 500 = 750)
+        final todayTotal = await repo.watchTodayTotal(userId).first;
+        expect(todayTotal, 750);
+      },
+    );
+
+    test('fuso horário: registros sincronizados em UTC são agrupados pelo fuso local', () async {
       final fixedNow = DateTime(2026, 9, 16, 15, 0, 0);
       final repo = WaterRepositoryImpl(
         db: db,
@@ -115,75 +115,71 @@ void main() {
       expect(entries.first.localRecordedAt.minute, localMorning.minute);
     });
 
-    test('watchLast7DaysSummary retorna exatamente 7 dias com hoje destacado',
-        () async {
-      // 2026-09-16 é quarta-feira ('Qua')
-      final fixedToday = DateTime(2026, 9, 16, 14, 0, 0);
-      final repo = WaterRepositoryImpl(
-        db: db,
-        syncQueue: syncQueue,
-        nowProvider: () => fixedToday,
-      );
+    test(
+      'watchLast7DaysSummary retorna exatamente 7 dias com hoje destacado',
+      () async {
+        // 2026-09-16 é quarta-feira ('Qua')
+        final fixedToday = DateTime(2026, 9, 16, 14, 0, 0);
+        final repo = WaterRepositoryImpl(
+          db: db,
+          syncQueue: syncQueue,
+          nowProvider: () => fixedToday,
+        );
 
-      const userId = 'user-week';
+        const userId = 'user-week';
 
-      // Insere consumos em dias variados
-      // Hoje (dia 16)
-      await repo.addWaterIntake(
-        userId: userId,
-        amountMl: 600,
-        recordedAt: DateTime(2026, 9, 16, 10, 0, 0),
-      );
-      // Ontem (dia 15)
-      await repo.addWaterIntake(
-        userId: userId,
-        amountMl: 1200,
-        recordedAt: DateTime(2026, 9, 15, 14, 0, 0),
-      );
-      // 4 dias atrás (dia 12)
-      await repo.addWaterIntake(
-        userId: userId,
-        amountMl: 800,
-        recordedAt: DateTime(2026, 9, 12, 9, 0, 0),
-      );
+        // Insere consumos em dias variados
+        // Hoje (dia 16)
+        await repo.addWaterIntake(
+          userId: userId,
+          amountMl: 600,
+          recordedAt: DateTime(2026, 9, 16, 10, 0, 0),
+        );
+        // Ontem (dia 15)
+        await repo.addWaterIntake(
+          userId: userId,
+          amountMl: 1200,
+          recordedAt: DateTime(2026, 9, 15, 14, 0, 0),
+        );
+        // 4 dias atrás (dia 12)
+        await repo.addWaterIntake(
+          userId: userId,
+          amountMl: 800,
+          recordedAt: DateTime(2026, 9, 12, 9, 0, 0),
+        );
 
-      final summaries = await repo.watchLast7DaysSummary(userId).first;
-      expect(summaries, hasLength(7));
+        final summaries = await repo.watchLast7DaysSummary(userId).first;
+        expect(summaries, hasLength(7));
 
-      // Último elemento é hoje
-      final todaySummary = summaries.last;
-      expect(todaySummary.isToday, isTrue);
-      expect(todaySummary.totalMl, 600);
-      expect(todaySummary.date.day, 16);
+        // Último elemento é hoje
+        final todaySummary = summaries.last;
+        expect(todaySummary.isToday, isTrue);
+        expect(todaySummary.totalMl, 600);
+        expect(todaySummary.date.day, 16);
 
-      // Penúltimo elemento é ontem (dia 15)
-      final yesterdaySummary = summaries[5];
-      expect(yesterdaySummary.isToday, isFalse);
-      expect(yesterdaySummary.totalMl, 1200);
-      expect(yesterdaySummary.date.day, 15);
+        // Penúltimo elemento é ontem (dia 15)
+        final yesterdaySummary = summaries[5];
+        expect(yesterdaySummary.isToday, isFalse);
+        expect(yesterdaySummary.totalMl, 1200);
+        expect(yesterdaySummary.date.day, 15);
 
-      // Elemento do dia 12 (índice 2)
-      final day12Summary = summaries[2];
-      expect(day12Summary.totalMl, 800);
-      expect(day12Summary.date.day, 12);
+        // Elemento do dia 12 (índice 2)
+        final day12Summary = summaries[2];
+        expect(day12Summary.totalMl, 800);
+        expect(day12Summary.date.day, 12);
 
-      // Dias sem registro devem ser 0 ml
-      final day14Summary = summaries[4];
-      expect(day14Summary.date.day, 14);
-      expect(day14Summary.totalMl, 0);
-    });
+        // Dias sem registro devem ser 0 ml
+        final day14Summary = summaries[4];
+        expect(day14Summary.date.day, 14);
+        expect(day14Summary.totalMl, 0);
+      },
+    );
 
     test('addWaterIntake salva no Drift e enfileira na SyncQueue', () async {
-      final repo = WaterRepositoryImpl(
-        db: db,
-        syncQueue: syncQueue,
-      );
+      final repo = WaterRepositoryImpl(db: db, syncQueue: syncQueue);
 
       const userId = 'user-sync';
-      final record = await repo.addWaterIntake(
-        userId: userId,
-        amountMl: 500,
-      );
+      final record = await repo.addWaterIntake(userId: userId, amountMl: 500);
 
       expect(record.amountMl, 500);
       expect(record.userId, userId);
@@ -205,16 +201,10 @@ void main() {
     });
 
     test('addWaterIntake drena para o gateway e marca synced', () async {
-      final repo = WaterRepositoryImpl(
-        db: db,
-        syncQueue: syncQueue,
-      );
+      final repo = WaterRepositoryImpl(db: db, syncQueue: syncQueue);
 
       const userId = 'user-sync-drain';
-      final record = await repo.addWaterIntake(
-        userId: userId,
-        amountMl: 500,
-      );
+      final record = await repo.addWaterIntake(userId: userId, amountMl: 500);
 
       await syncQueue.processQueue();
 
@@ -227,33 +217,30 @@ void main() {
       expect(rows.single.synced, isTrue);
     });
 
-    test('deleteWaterIntake remove do Drift e reatividade atualiza streams',
-        () async {
-      final repo = WaterRepositoryImpl(
-        db: db,
-        syncQueue: syncQueue,
-      );
-
-      const userId = 'user-del';
-      final r1 = await repo.addWaterIntake(userId: userId, amountMl: 250);
-      final r2 = await repo.addWaterIntake(userId: userId, amountMl: 500);
-
-      var entries = await repo.watchTodayEntries(userId).first;
-      expect(entries, hasLength(2));
-
-      await repo.deleteWaterIntake(r1.id);
-
-      entries = await repo.watchTodayEntries(userId).first;
-      expect(entries, hasLength(1));
-      expect(entries.first.id, r2.id);
-
-      final total = await repo.watchTodayTotal(userId).first;
-      expect(total, 500);
-    });
-
     test(
-        'preserva data no fuso local mesmo se recordedAt vier em UTC que cruza meia-noite',
-        () async {
+      'deleteWaterIntake remove do Drift e reatividade atualiza streams',
+      () async {
+        final repo = WaterRepositoryImpl(db: db, syncQueue: syncQueue);
+
+        const userId = 'user-del';
+        final r1 = await repo.addWaterIntake(userId: userId, amountMl: 250);
+        final r2 = await repo.addWaterIntake(userId: userId, amountMl: 500);
+
+        var entries = await repo.watchTodayEntries(userId).first;
+        expect(entries, hasLength(2));
+
+        await repo.deleteWaterIntake(r1.id);
+
+        entries = await repo.watchTodayEntries(userId).first;
+        expect(entries, hasLength(1));
+        expect(entries.first.id, r2.id);
+
+        final total = await repo.watchTodayTotal(userId).first;
+        expect(total, 500);
+      },
+    );
+
+    test('preserva data no fuso local mesmo se recordedAt vier em UTC que cruza meia-noite', () async {
       final fixedWednesday = DateTime(2026, 9, 16, 12, 0, 0);
       final repo = WaterRepositoryImpl(
         db: db,
@@ -262,17 +249,19 @@ void main() {
       );
 
       const userId = 'user-midnight';
-      await db.into(db.waterIntake).insert(
-        WaterIntakeCompanion.insert(
-          id: 'test-midnight-1',
-          userId: userId,
-          amountMl: 1000,
-          recordedAt: DateTime.utc(2026, 9, 16, 1, 30),
-          date: '2026-09-16',
-          synced: const Value(true),
-          updatedAt: DateTime.now(),
-        ),
-      );
+      await db
+          .into(db.waterIntake)
+          .insert(
+            WaterIntakeCompanion.insert(
+              id: 'test-midnight-1',
+              userId: userId,
+              amountMl: 1000,
+              recordedAt: DateTime.utc(2026, 9, 16, 1, 30),
+              date: '2026-09-16',
+              synced: const Value(true),
+              updatedAt: DateTime.now(),
+            ),
+          );
 
       final todayEntries = await repo.watchTodayEntries(userId).first;
       expect(todayEntries, hasLength(1));

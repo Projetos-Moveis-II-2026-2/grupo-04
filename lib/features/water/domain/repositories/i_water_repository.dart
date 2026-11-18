@@ -27,4 +27,3 @@ abstract interface class IWaterRepository {
   /// Remove um registro de água pelo seu identificador.
   Future<void> deleteWaterIntake(String id);
 }
-

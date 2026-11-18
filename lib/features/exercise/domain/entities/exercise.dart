@@ -49,20 +49,20 @@ class Exercise extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        remoteId,
-        externalId,
-        name,
-        force,
-        level,
-        mechanic,
-        equipment,
-        primaryMuscles,
-        secondaryMuscles,
-        instructions,
-        category,
-        imageUrls,
-        synced,
-        updatedAt,
-      ];
+    id,
+    remoteId,
+    externalId,
+    name,
+    force,
+    level,
+    mechanic,
+    equipment,
+    primaryMuscles,
+    secondaryMuscles,
+    instructions,
+    category,
+    imageUrls,
+    synced,
+    updatedAt,
+  ];
 }

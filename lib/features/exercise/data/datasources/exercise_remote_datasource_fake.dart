@@ -1,5 +1,8 @@
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+
 import '../../domain/entities/exercise.dart';
 
 class ExerciseRemoteDataSourceFake {
@@ -10,21 +13,27 @@ class ExerciseRemoteDataSourceFake {
 
     try {
       // Carrega o dataset local
-      final jsonString = await rootBundle.loadString('assets/data/exercises.json');
+      final jsonString = await rootBundle.loadString(
+        'assets/data/exercises.json',
+      );
       final List<dynamic> jsonList = jsonDecode(jsonString);
 
       return jsonList.map((json) {
-        final id = json['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString();
+        final id =
+            json['id'] as String? ??
+            DateTime.now().microsecondsSinceEpoch.toString();
         final name = json['name'] as String? ?? 'Exercício sem nome';
         final force = json['force'] as String?;
         final level = json['level'] as String?;
         final mechanic = json['mechanic'] as String?;
         final equipment = json['equipment'] as String?;
-        
-        final primaryMusclesList = json['primaryMuscles'] as List<dynamic>? ?? [];
+
+        final primaryMusclesList =
+            json['primaryMuscles'] as List<dynamic>? ?? [];
         final primaryMuscles = primaryMusclesList.join(', ');
 
-        final secondaryMusclesList = json['secondaryMuscles'] as List<dynamic>? ?? [];
+        final secondaryMusclesList =
+            json['secondaryMuscles'] as List<dynamic>? ?? [];
         final secondaryMuscles = secondaryMusclesList.join(', ');
 
         final instructionsList = json['instructions'] as List<dynamic>? ?? [];
@@ -33,7 +42,12 @@ class ExerciseRemoteDataSourceFake {
         final category = json['category'] as String?;
 
         final imagesList = json['images'] as List<dynamic>? ?? [];
-        final imageUrls = imagesList.map((img) => 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/$img').join(',');
+        final imageUrls = imagesList
+            .map(
+              (img) =>
+                  'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/$img',
+            )
+            .join(',');
 
         return Exercise(
           id: id,
@@ -53,7 +67,7 @@ class ExerciseRemoteDataSourceFake {
         );
       }).toList();
     } catch (e) {
-      print('Erro ao carregar o JSON local: $e');
+      debugPrint('Erro ao carregar o JSON local: $e');
       return [];
     }
   }
