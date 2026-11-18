@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:olimpus/features/progress/domain/entities/monthly_workout_summary.dart';
-import 'package:olimpus/features/progress/presentation/pages/progress_page.dart';
 import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
+import 'package:olimpus/features/progress/presentation/widgets/monthly_calendar_section.dart';
 
 String _monthLabel(DateTime month) {
   final formatted = DateFormat('MMMM yyyy', 'pt_BR').format(month);
@@ -47,7 +47,11 @@ void main() {
             (ref) => Stream.value(summary),
           ),
         ],
-        child: const MaterialApp(home: ProgressPage()),
+        child: const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: MonthlyCalendarSection()),
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -78,7 +82,6 @@ void main() {
     expect(find.byKey(const ValueKey('trained-day-12')), findsOneWidget);
     expect(find.byKey(const ValueKey('regular-day-6')), findsOneWidget);
     expect(find.text('Nenhum treino concluído neste mês'), findsNothing);
-    expect(find.text('Ver Consumo de Água'), findsOneWidget);
   });
 
   testWidgets('navega entre meses e não avança além do mês atual', (

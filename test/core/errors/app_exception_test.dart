@@ -96,22 +96,25 @@ void main() {
       expect(exception.message, contains('Instabilidade no servidor'));
     });
 
-    test('extrai mensagem customizada do servidor em badResponse se disponível', () {
-      final dioException = DioException(
-        requestOptions: RequestOptions(path: '/test'),
-        type: DioExceptionType.badResponse,
-        response: Response(
+    test(
+      'extrai mensagem customizada do servidor em badResponse se disponível',
+      () {
+        final dioException = DioException(
           requestOptions: RequestOptions(path: '/test'),
-          statusCode: 400,
-          data: {'message': 'Parâmetro de treino inválido.'},
-        ),
-      );
+          type: DioExceptionType.badResponse,
+          response: Response(
+            requestOptions: RequestOptions(path: '/test'),
+            statusCode: 400,
+            data: {'message': 'Parâmetro de treino inválido.'},
+          ),
+        );
 
-      final exception = AppException.from(dioException);
+        final exception = AppException.from(dioException);
 
-      expect(exception, isA<ClientException>());
-      expect(exception.message, 'Parâmetro de treino inválido.');
-    });
+        expect(exception, isA<ClientException>());
+        expect(exception.message, 'Parâmetro de treino inválido.');
+      },
+    );
   });
 
   group('AppException.from - AuthException (Supabase)', () {

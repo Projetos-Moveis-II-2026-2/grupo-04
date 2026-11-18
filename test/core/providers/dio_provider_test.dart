@@ -29,9 +29,7 @@ void main() {
   test('dioClientProvider pode ser sobrescrito em testes', () {
     final mockDio = _MockDio();
     final container = ProviderContainer(
-      overrides: [
-        dioClientProvider.overrideWithValue(mockDio),
-      ],
+      overrides: [dioClientProvider.overrideWithValue(mockDio)],
     );
     addTearDown(container.dispose);
 

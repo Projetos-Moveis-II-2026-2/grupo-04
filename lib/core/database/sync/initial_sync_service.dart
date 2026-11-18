@@ -203,9 +203,11 @@ class InitialSyncService {
       final remoteId = row['id'] as String;
       final remoteUpdated = DateTime.parse(row['updated_at'] as String);
       final recordedAt = DateTime.parse(row['recorded_at'] as String);
-      final existing = await (_db.select(
-        _db.waterIntake,
-      )..where((t) => t.remoteId.equals(remoteId) | t.id.equals(remoteId))).getSingleOrNull();
+      final existing =
+          await (_db.select(_db.waterIntake)..where(
+                (t) => t.remoteId.equals(remoteId) | t.id.equals(remoteId),
+              ))
+              .getSingleOrNull();
 
       final localRecordedAt = recordedAt.toLocal();
       final localDateStr =

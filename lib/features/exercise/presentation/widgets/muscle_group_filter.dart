@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../providers/exercise_providers.dart';
 
 class MuscleGroupFilter extends ConsumerWidget {
@@ -38,8 +39,9 @@ class MuscleGroupFilter extends ConsumerWidget {
               label: Text(muscle),
               selected: isSelected,
               onSelected: (_) {
-                ref.read(selectedMuscleGroupProvider.notifier).update(
-                    isSelected ? null : muscle);
+                ref
+                    .read(selectedMuscleGroupProvider.notifier)
+                    .update(isSelected ? null : muscle);
               },
             ),
           );

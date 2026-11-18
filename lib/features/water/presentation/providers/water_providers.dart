@@ -12,15 +12,13 @@ import '../../domain/repositories/i_water_repository.dart';
 final waterRepositoryProvider = Provider<IWaterRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final syncQueue = ref.watch(syncQueueServiceProvider);
-  return WaterRepositoryImpl(
-    db: db,
-    syncQueue: syncQueue,
-  );
+  return WaterRepositoryImpl(db: db, syncQueue: syncQueue);
 });
 
 /// Stream reativo com os registros de água do dia de hoje para o usuário atual.
-final todayWaterEntriesProvider =
-    StreamProvider<List<WaterIntakeRecord>>((ref) {
+final todayWaterEntriesProvider = StreamProvider<List<WaterIntakeRecord>>((
+  ref,
+) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(const []);
   final repo = ref.watch(waterRepositoryProvider);
@@ -38,8 +36,9 @@ final todayWaterTotalProvider = StreamProvider<int>((ref) {
 });
 
 /// Stream reativo com o consolidado dos últimos 7 dias (incluindo hoje).
-final weeklyWaterSummaryProvider =
-    StreamProvider<List<DailyWaterSummary>>((ref) {
+final weeklyWaterSummaryProvider = StreamProvider<List<DailyWaterSummary>>((
+  ref,
+) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(const []);
   final repo = ref.watch(waterRepositoryProvider);
@@ -54,16 +53,15 @@ class DailyWaterGoalNotifier extends Notifier<int> {
   int build() {
     final prefs = ref.watch(sharedPreferencesProvider);
     final user = ref.watch(currentUserProvider);
-    final userKey =
-        user != null ? '${_kDailyWaterGoalKey}_${user.id}' : _kDailyWaterGoalKey;
+    final userKey = user != null
+        ? '${_kDailyWaterGoalKey}_${user.id}'
+        : _kDailyWaterGoalKey;
 
     if (user != null) {
       _fetchRemoteGoal(user.id);
     }
 
-    return prefs.getInt(userKey) ??
-        prefs.getInt(_kDailyWaterGoalKey) ??
-        2000;
+    return prefs.getInt(userKey) ?? prefs.getInt(_kDailyWaterGoalKey) ?? 2000;
   }
 
   Future<void> _fetchRemoteGoal(String userId) async {
@@ -95,7 +93,8 @@ class DailyWaterGoalNotifier extends Notifier<int> {
         final client = ref.read(supabaseClientProvider);
         await client
             .from('profiles')
-            .update({'daily_water_goal_ml': goalMl}).eq('id', user.id);
+            .update({'daily_water_goal_ml': goalMl})
+            .eq('id', user.id);
       } catch (_) {
         // Falhas silenciosas de rede não bloqueiam persistência local
       }
@@ -105,6 +104,6 @@ class DailyWaterGoalNotifier extends Notifier<int> {
   }
 }
 
-final dailyWaterGoalProvider =
-    NotifierProvider<DailyWaterGoalNotifier, int>(DailyWaterGoalNotifier.new);
-
+final dailyWaterGoalProvider = NotifierProvider<DailyWaterGoalNotifier, int>(
+  DailyWaterGoalNotifier.new,
+);

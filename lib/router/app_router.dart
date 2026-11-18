@@ -14,8 +14,11 @@ import '../features/auth/presentation/pages/splash_page.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/exercise/presentation/pages/exercise_details_page.dart';
 import '../features/exercise/presentation/pages/exercise_library_page.dart';
+import '../features/profile/presentation/pages/onboarding_page.dart';
+import '../features/profile/presentation/providers/profile_providers.dart';
 import '../features/progress/presentation/pages/progress_page.dart';
 import '../features/water/presentation/pages/water_history_page.dart';
+import '../features/workout/presentation/pages/free_workout_page.dart';
 import '../features/workout/presentation/pages/workout_list_page.dart';
 import 'scaffold_with_nav_bar.dart';
 
@@ -47,21 +50,46 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           location.startsWith('/reset-password') ||
           location.startsWith('/auth/reset-password');
 
-      // 2. Se estiver na tela de splash e o auth já foi resolvido
-      if (location == '/splash') {
-        return isLoggedIn ? '/home' : '/login';
+      final isResetPasswordRoute =
+          location.startsWith('/reset-password') ||
+          location.startsWith('/auth/reset-password');
+
+      // 2. Usuário não autenticado tentando acessar rota protegida (inclusive /onboarding)
+      if (!isLoggedIn) {
+        if (location == '/splash') {
+          return '/login';
+        }
+        if (!isAuthRoute) {
+          return '/login';
+        }
+        return null;
       }
 
-      // 3. Usuário não autenticado tentando acessar rota protegida
-      if (!isLoggedIn && !isAuthRoute) {
-        return '/login';
+      // 3. Usuário autenticado: verificar status do onboarding
+      final onboardingState = ref.read(onboardingStatusProvider);
+
+      // Enquanto o status do onboarding estiver sendo verificado, permanece no splash
+      if (onboardingState.isLoading) {
+        return location == '/splash' ? null : '/splash';
       }
 
-      // 4. Usuário autenticado tentando acessar tela pública/auth (exceto reset de senha)
-      if (isLoggedIn &&
-          isAuthRoute &&
-          !location.startsWith('/reset-password') &&
-          !location.startsWith('/auth/reset-password')) {
+      final isOnboardingCompleted = onboardingState.value ?? false;
+
+      // 4. Se o onboarding estiver pendente
+      if (!isOnboardingCompleted) {
+        // Permite reset de senha se veio por fluxo de recuperação
+        if (isResetPasswordRoute) {
+          return null;
+        }
+        // Se ainda não estiver em /onboarding, força redirecionamento
+        return location == '/onboarding' ? null : '/onboarding';
+      }
+
+      // 5. Se o onboarding estiver concluído
+      // Bloqueia telas de auth e a própria tela de onboarding (nunca mais volta)
+      if (location == '/splash' ||
+          location == '/onboarding' ||
+          (isAuthRoute && !isResetPasswordRoute)) {
         return '/home';
       }
 
@@ -69,22 +97,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // ── Rota Raiz (redireciona para /home) ──
-      GoRoute(
-        path: '/',
-        redirect: (context, state) => '/home',
-      ),
+      GoRoute(path: '/', redirect: (context, state) => '/home'),
 
       // ── Splash Screen ──
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashPage(),
-      ),
+      GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
 
       // ── Rotas de Autenticação (fora do shell de abas) ──
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterPage(),
@@ -95,14 +114,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           email: state.uri.queryParameters['email'] ?? '',
         ),
       ),
-      GoRoute(
-        path: '/callback',
-        redirect: (context, state) => '/home',
-      ),
-      GoRoute(
-        path: '/auth/callback',
-        redirect: (context, state) => '/home',
-      ),
+      GoRoute(path: '/callback', redirect: (context, state) => '/home'),
+      GoRoute(path: '/auth/callback', redirect: (context, state) => '/home'),
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordPage(),
@@ -114,6 +127,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/reset-password',
         builder: (context, state) => const ResetPasswordPage(),
+      ),
+
+      // ── Onboarding (fora do shell de abas) ──
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingPage(),
       ),
 
       // ── Shell com Bottom Navigation Bar (4 abas com estado preservado) ──
@@ -139,6 +158,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/workout',
                 builder: (context, state) => const WorkoutListPage(),
                 routes: [
+                  GoRoute(
+                    path: 'free',
+                    builder: (context, state) => const FreeWorkoutPage(),
+                  ),
                   GoRoute(
                     path: ':id',
                     builder: (context, state) {
@@ -212,6 +235,9 @@ class RouterNotifier extends ChangeNotifier {
 
   RouterNotifier(this._ref) {
     _ref.listen(authStateProvider, (_, _) {
+      notifyListeners();
+    });
+    _ref.listen(onboardingStatusProvider, (_, _) {
       notifyListeners();
     });
   }

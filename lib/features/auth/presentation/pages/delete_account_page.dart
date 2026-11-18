@@ -83,10 +83,7 @@ class _DeleteAccountPageState extends ConsumerState<DeleteAccountPage> {
           defaultMessage: 'Não foi possível excluir a conta. Tente novamente.',
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: colorScheme.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: colorScheme.error),
         );
       }
     });

@@ -1,5 +1,7 @@
 # 🏋️‍♂️ Olimpus
 
+[![CI](https://github.com/Projetos-Moveis-II-2026-2/grupo-04/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/Projetos-Moveis-II-2026-2/grupo-04/actions/workflows/ci.yml)
+
 Bem-vindo ao **Olimpus**! Este é o nosso app de acompanhamento de treino de musculação e hidratação. Construído com **Flutter** e **Supabase**, ele foca em uma experiência *offline-first* poderosa para que você possa treinar mesmo sem internet.
 
 > ⚠️ **Status do Documento:** README principal em construção (referente à issue #59 do backlog).
@@ -30,6 +32,24 @@ Antes de rodar o projeto, certifique-se de estar com o ambiente configurado corr
 
 ---
 
+## 🧪 Testes de integração
+
+Os testes de `test/integration/` exercitam a fila offline do Drift e, quando há um Supabase local, autenticação, sincronização com o Postgres e isolamento por RLS entre usuários. A parte Drift-only roda sempre; os testes de Supabase são pulados automaticamente quando `SUPABASE_TEST_URL` e `SUPABASE_TEST_ANON_KEY` não estão definidas.
+
+```bash
+# Sobe o stack local e exporta as credenciais de teste
+supabase start
+eval "$(supabase status -o env)"
+export SUPABASE_TEST_URL="${API_URL:-$SUPABASE_URL}"
+export SUPABASE_TEST_ANON_KEY="${ANON_KEY:-$PUBLISHABLE_KEY}"
+
+flutter test test/integration/
+```
+
+No CI (`.github/workflows/integration.yml`), o Supabase local sobe automaticamente em pull requests para `dev` e `main`.
+
+---
+
 ## 🏗️ Estrutura e Arquitetura do Projeto
 
 Para mantermos o código organizado, escalável e testável, utilizamos uma abordagem **Feature-First** (divisão por funcionalidades) baseada nos princípios de Clean Architecture. 
@@ -39,6 +59,25 @@ Dentro de `lib/features/`, cada funcionalidade (como `workout`, `water`, `auth`,
 * 🎨 **`presentation/`**: Contém tudo que é visual. Suas telas (Screens), componentes de UI (Widgets) e os gerenciadores de estado (usamos Riverpod para Providers e controllers).
 * 🧠 **`domain/`**: O coração da regra de negócio. Contém suas Entidades (modelos puros) e as definições de repositórios (interfaces/contratos) que dizem "o que" o app faz, sem se importar com "como" é feito.
 * 💾 **`data/`**: A camada de comunicação externa e persistência. Aqui ficam os modelos DTO, implementação das chamadas de API (Supabase) e banco de dados local (Drift/SQLite).
+
+---
+
+## 🧪 Testes
+
+Os testes unitários e de widget ficam em `test/`, espelhando a estrutura de `lib/`.
+
+```bash
+# Todos os testes
+flutter test
+
+# Testes com relatório de cobertura (gera coverage/lcov.info)
+flutter test --coverage
+
+# Verifica a cobertura mínima de 60% em lib/features/*/domain/
+dart run tool/coverage_check.dart
+```
+
+O script `tool/coverage_check.dart` lê `coverage/lcov.info`, calcula a cobertura de linhas por arquivo de `lib/features/*/domain/` e encerra com código de erro caso o total fique abaixo de **60%**.
 
 ---
 

@@ -66,6 +66,8 @@ dev_dependencies:
   riverpod_lint: ^3.1.0
   drift_dev: ^2.34.4
   mocktail: ^1.0.0
+  # Usado apenas por scripts de desenvolvimento em tool/
+  http: ^1.2.0
 
 flutter:
   uses-material-design: true

@@ -1,0 +1,3 @@
+tags:
+  integration:
+    description: Testes de integração com Drift em memória e Supabase local.

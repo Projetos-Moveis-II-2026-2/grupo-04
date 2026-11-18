@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -29,10 +32,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: DailyWaterTotalCard(
-              totalMl: 1850,
-              goalMl: 2000,
-            ),
+            body: DailyWaterTotalCard(totalMl: 1850, goalMl: 2000),
           ),
         ),
       );
@@ -43,15 +43,13 @@ void main() {
       expect(find.text('92%'), findsOneWidget);
     });
 
-    testWidgets('exibe "Meta atingida! 🎉" quando totalMl >= goalMl',
-        (tester) async {
+    testWidgets('exibe "Meta atingida! 🎉" quando totalMl >= goalMl', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: DailyWaterTotalCard(
-              totalMl: 2200,
-              goalMl: 2000,
-            ),
+            body: DailyWaterTotalCard(totalMl: 2200, goalMl: 2000),
           ),
         ),
       );
@@ -62,13 +60,12 @@ void main() {
   });
 
   group('TodayWaterEntriesList Widget', () {
-    testWidgets('exibe estado vazio amigável quando lista está vazia',
-        (tester) async {
+    testWidgets('exibe estado vazio amigável quando lista está vazia', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: TodayWaterEntriesList(entries: []),
-          ),
+          home: Scaffold(body: TodayWaterEntriesList(entries: [])),
         ),
       );
 
@@ -76,8 +73,9 @@ void main() {
       expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
     });
 
-    testWidgets('exibe itens com volume em ml e horário formatado',
-        (tester) async {
+    testWidgets('exibe itens com volume em ml e horário formatado', (
+      tester,
+    ) async {
       final entries = [
         WaterIntakeRecord(
           id: 'w-1',
@@ -97,9 +95,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: TodayWaterEntriesList(entries: entries),
-          ),
+          home: Scaffold(body: TodayWaterEntriesList(entries: entries)),
         ),
       );
 
@@ -174,8 +170,56 @@ void main() {
   });
 
   group('WaterHistoryPage Full Integration', () {
-    testWidgets('renderiza página completa com dados providos pelo Riverpod',
-        (tester) async {
+    testWidgets('vibra apenas ao cruzar a meta a partir de um total menor', (
+      tester,
+    ) async {
+      final totals = StreamController<int>();
+      addTearDown(totals.close);
+      final vibrations = <Object?>[];
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          vibrations.add(call.arguments);
+        }
+        return null;
+      });
+      addTearDown(() {
+        messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            currentUserProvider.overrideWithValue(
+              const AppUser(
+                id: 'usuario-1',
+                email: 'teste@example.com',
+                emailConfirmedAt: null,
+              ),
+            ),
+            todayWaterTotalProvider.overrideWith((ref) => totals.stream),
+            todayWaterEntriesProvider.overrideWith((ref) => Stream.value([])),
+            weeklyWaterSummaryProvider.overrideWith((ref) => Stream.value([])),
+          ],
+          child: const MaterialApp(home: WaterHistoryPage()),
+        ),
+      );
+
+      totals.add(2000);
+      await tester.pumpAndSettle();
+      expect(vibrations, isEmpty);
+
+      for (final total in [1750, 2000, 2250]) {
+        totals.add(total);
+        await tester.pumpAndSettle();
+      }
+      expect(vibrations, ['HapticFeedbackType.mediumImpact']);
+    });
+
+    testWidgets('renderiza página completa com dados providos pelo Riverpod', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -253,9 +297,7 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             currentUserProvider.overrideWithValue(testUser),
-            todayWaterTotalProvider.overrideWith(
-              (ref) => Stream.value(850),
-            ),
+            todayWaterTotalProvider.overrideWith((ref) => Stream.value(850)),
             todayWaterEntriesProvider.overrideWith(
               (ref) => Stream.value(entries),
             ),
@@ -263,9 +305,7 @@ void main() {
               (ref) => Stream.value(summaries),
             ),
           ],
-          child: const MaterialApp(
-            home: WaterHistoryPage(),
-          ),
+          child: const MaterialApp(home: WaterHistoryPage()),
         ),
       );
 
@@ -293,4 +333,3 @@ void main() {
     });
   });
 }
-
