@@ -399,7 +399,7 @@ class _SessionHistoryList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'pt_BR');
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
     final numberFormat = NumberFormat('#,##0.#', 'pt_BR');
 
     // Exibe em ordem decrescente (mais recente primeiro)

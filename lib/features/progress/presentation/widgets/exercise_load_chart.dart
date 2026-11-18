@@ -51,7 +51,7 @@ class ExerciseLoadChart extends StatelessWidget {
     final double minX = isSinglePoint ? -0.5 : 0.0;
     final double maxX = isSinglePoint ? 0.5 : (points.length - 1).toDouble();
 
-    final dateFormat = DateFormat('dd/MM', 'pt_BR');
+    final dateFormat = DateFormat('dd/MM');
     final numberFormat = NumberFormat('#,##0.#', 'pt_BR');
 
     return Card(
