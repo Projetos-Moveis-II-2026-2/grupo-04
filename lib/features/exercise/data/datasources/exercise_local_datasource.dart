@@ -2,8 +2,11 @@ import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../domain/entities/exercise.dart';
+import '../../domain/entities/exercise_option.dart';
 
 class ExerciseLocalDataSource {
+  static const int defaultInsertBatchSize = 200;
+
   final AppDatabase _db;
 
   ExerciseLocalDataSource(this._db);
@@ -37,16 +40,77 @@ class ExerciseLocalDataSource {
         .map((rows) => rows.map(_toEntity).toList());
   }
 
-  /// Insert or replace multiple exercises
+  /// Busca opções leves (`id` e `name`) diretamente no SQLite usando projeção
+  /// de colunas, `LIKE` case-insensitive e `LIMIT`.
+  Future<List<ExerciseOption>> searchByName(
+    String query, {
+    int limit = 30,
+  }) async {
+    if (limit <= 0) return const [];
+    final normalized = query.trim().toLowerCase();
+    final table = _db.exerciseLibraryTable;
+    final select = _db.selectOnly(table)
+      ..addColumns([table.id, table.name])
+      ..orderBy([OrderingTerm.asc(table.name)])
+      ..limit(limit);
+
+    if (normalized.isNotEmpty) {
+      final escaped = _escapeLikePattern(normalized);
+      select.where(table.name.lower().like('%$escaped%', escapeChar: r'\'));
+    }
+
+    final rows = await select.get();
+    return rows
+        .map(
+          (row) => ExerciseOption(
+            id: row.read(table.id)!,
+            name: row.read(table.name)!,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  static String _escapeLikePattern(String input) {
+    return input
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
+  }
+
+  /// Retorna `true` se o catálogo local já possui ao menos um exercício.
+  Future<bool> hasExercises() async {
+    final table = _db.exerciseLibraryTable;
+    final row =
+        await (_db.selectOnly(table)
+              ..addColumns([table.id])
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
+  }
+
+  /// Insert or replace multiple exercises em lotes para evitar travamento da UI.
   Future<void> insertExercises(
-    List<ExerciseLibraryTableCompanion> exercises,
-  ) async {
-    await _db.batch((batch) {
-      batch.insertAll(
-        _db.exerciseLibraryTable,
-        exercises,
-        mode: InsertMode.insertOrReplace,
-      );
-    });
+    List<ExerciseLibraryTableCompanion> exercises, {
+    int batchSize = defaultInsertBatchSize,
+  }) async {
+    if (exercises.isEmpty) return;
+    final effectiveBatchSize = batchSize <= 0
+        ? defaultInsertBatchSize
+        : batchSize;
+
+    for (var i = 0; i < exercises.length; i += effectiveBatchSize) {
+      final end = (i + effectiveBatchSize).clamp(0, exercises.length);
+      final chunk = exercises.sublist(i, end);
+      await _db.batch((batch) {
+        batch.insertAll(
+          _db.exerciseLibraryTable,
+          chunk,
+          mode: InsertMode.insertOrReplace,
+        );
+      });
+      if (end < exercises.length) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
   }
 }

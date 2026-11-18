@@ -9,6 +9,8 @@ import 'package:olimpus/core/widgets/app_error_widget.dart';
 import 'package:olimpus/features/auth/domain/entities/app_user.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:olimpus/features/progress/domain/entities/exercise_load_point.dart';
+import 'package:olimpus/features/progress/domain/entities/monthly_workout_summary.dart';
+import 'package:olimpus/features/progress/domain/entities/streak.dart';
 import 'package:olimpus/features/progress/domain/entities/user_exercise_summary.dart';
 import 'package:olimpus/features/progress/presentation/pages/progress_page.dart';
 import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
@@ -16,6 +18,16 @@ import 'package:olimpus/features/progress/presentation/widgets/exercise_load_cha
 import 'package:olimpus/features/progress/presentation/widgets/exercise_selector.dart';
 
 import '../../../../helpers/pump_app.dart';
+
+MonthlyWorkoutSummary _emptyMonth() {
+  final now = DateTime.now();
+  return MonthlyWorkoutSummary(
+    month: DateTime(now.year, now.month),
+    trainedDays: const {},
+    workoutCount: 0,
+    totalVolumeKg: 0,
+  );
+}
 
 void main() {
   const testUser = AppUser(
@@ -36,6 +48,15 @@ void main() {
           ProviderScope(
             overrides: [
               currentUserProvider.overrideWithValue(testUser),
+              monthlyWorkoutSummaryProvider.overrideWith(
+                (ref) => Stream.value(_emptyMonth()),
+              ),
+              workoutStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
+              waterStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(const []),
               ),
@@ -98,6 +119,15 @@ void main() {
           ProviderScope(
             overrides: [
               currentUserProvider.overrideWithValue(testUser),
+              monthlyWorkoutSummaryProvider.overrideWith(
+                (ref) => Stream.value(_emptyMonth()),
+              ),
+              workoutStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
+              waterStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(exercises),
               ),
@@ -151,6 +181,15 @@ void main() {
           ProviderScope(
             overrides: [
               currentUserProvider.overrideWithValue(testUser),
+              monthlyWorkoutSummaryProvider.overrideWith(
+                (ref) => Stream.value(_emptyMonth()),
+              ),
+              workoutStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
+              waterStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(exercises),
               ),
@@ -184,6 +223,15 @@ void main() {
         ProviderScope(
           overrides: [
             currentUserProvider.overrideWithValue(testUser),
+            monthlyWorkoutSummaryProvider.overrideWith(
+              (ref) => Stream.value(_emptyMonth()),
+            ),
+            workoutStreakProvider.overrideWith(
+              (ref) => Stream.value(const Streak(current: 0, best: 0)),
+            ),
+            waterStreakProvider.overrideWith(
+              (ref) => Stream.value(const Streak(current: 0, best: 0)),
+            ),
             userExercisesWithProgressProvider.overrideWith(
               (ref) => Stream.error(Exception('Erro ao carregar histórico')),
             ),
@@ -211,6 +259,18 @@ void main() {
       name: 'Agachamento Livre',
     );
 
+    final calendarAndStreakOverrides = [
+      monthlyWorkoutSummaryProvider.overrideWith(
+        (ref) => Stream.value(_emptyMonth()),
+      ),
+      workoutStreakProvider.overrideWith(
+        (ref) => Stream.value(const Streak(current: 0, best: 0)),
+      ),
+      waterStreakProvider.overrideWith(
+        (ref) => Stream.value(const Streak(current: 0, best: 0)),
+      ),
+    ];
+
     testWidgets('exibe indicador de carregamento enquanto carrega exercícios', (
       tester,
     ) async {
@@ -222,6 +282,7 @@ void main() {
         child: const ProgressPage(),
         overrides: [
           currentUserProvider.overrideWithValue(testUser),
+          ...calendarAndStreakOverrides,
           userExercisesWithProgressProvider.overrideWith(
             (ref) => exercisesCtrl.stream,
           ),
@@ -247,6 +308,7 @@ void main() {
           child: const ProgressPage(),
           overrides: [
             currentUserProvider.overrideWithValue(testUser),
+            ...calendarAndStreakOverrides,
             userExercisesWithProgressProvider.overrideWith(
               (ref) => Stream.value([supino]),
             ),
@@ -273,6 +335,7 @@ void main() {
           child: const ProgressPage(),
           overrides: [
             currentUserProvider.overrideWithValue(testUser),
+            ...calendarAndStreakOverrides,
             userExercisesWithProgressProvider.overrideWith(
               (ref) => Stream.value([supino]),
             ),
@@ -302,6 +365,7 @@ void main() {
           child: const ProgressPage(),
           overrides: [
             currentUserProvider.overrideWithValue(testUser),
+            ...calendarAndStreakOverrides,
             userExercisesWithProgressProvider.overrideWith(
               (ref) => Stream.value([supino]),
             ),
@@ -343,6 +407,7 @@ void main() {
           child: const ProgressPage(),
           overrides: [
             currentUserProvider.overrideWithValue(testUser),
+            ...calendarAndStreakOverrides,
             userExercisesWithProgressProvider.overrideWith(
               (ref) => Stream.value([supino, agachamento]),
             ),
@@ -356,6 +421,7 @@ void main() {
         );
         await tester.pumpAndSettleBounded();
 
+        await tester.ensureVisible(find.byType(ExerciseSelector));
         await tester.tap(find.byType(ExerciseSelector));
         await tester.pumpAndSettleBounded();
         await tester.tap(find.text('Agachamento Livre').last);

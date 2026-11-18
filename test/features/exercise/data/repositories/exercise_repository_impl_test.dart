@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:olimpus/core/database/app_database.dart';
@@ -5,6 +7,7 @@ import 'package:olimpus/features/exercise/data/datasources/exercise_local_dataso
 import 'package:olimpus/features/exercise/data/datasources/exercise_remote_datasource_fake.dart';
 import 'package:olimpus/features/exercise/data/repositories/exercise_repository_impl.dart';
 import 'package:olimpus/features/exercise/domain/entities/exercise.dart';
+import 'package:olimpus/features/exercise/domain/entities/exercise_option.dart';
 
 class MockExerciseLocalDataSource extends Mock
     implements ExerciseLocalDataSource {}
@@ -24,6 +27,7 @@ void main() {
   setUp(() {
     mockLocal = MockExerciseLocalDataSource();
     mockRemote = MockExerciseRemoteDataSourceFake();
+    when(() => mockLocal.hasExercises()).thenAnswer((_) async => false);
     repository = ExerciseRepositoryImpl(mockLocal, mockRemote);
   });
 
@@ -139,5 +143,48 @@ void main() {
       // act & assert
       await expectLater(repository.syncExercises(), completes);
     });
+
+    test('should skip sync when local catalog already has exercises', () async {
+      when(() => mockLocal.hasExercises()).thenAnswer((_) async => true);
+
+      await repository.syncExercises();
+
+      verifyNever(() => mockRemote.fetchExercises());
+      verifyNever(() => mockLocal.insertExercises(any()));
+    });
+
+    test('should deduplicate concurrent syncExercises calls', () async {
+      final fetchCompleter = Completer<List<Exercise>>();
+      when(() => mockRemote.fetchExercises())
+          .thenAnswer((_) => fetchCompleter.future);
+      when(() => mockLocal.insertExercises(any())).thenAnswer((_) async {});
+
+      final firstCall = repository.syncExercises();
+      final secondCall = repository.syncExercises();
+      await Future<void>.delayed(Duration.zero);
+
+      verify(() => mockRemote.fetchExercises()).called(1);
+
+      fetchCompleter.complete([buildExercise()]);
+      await Future.wait([firstCall, secondCall]);
+
+      verify(() => mockLocal.insertExercises(any())).called(1);
+    });
+  });
+
+  group('searchByName', () {
+    test(
+      'should delegate lightweight query and limit to local datasource',
+      () async {
+        const options = [ExerciseOption(id: 'ex-1', name: 'Supino Reto')];
+        when(() => mockLocal.searchByName('supino', limit: 15))
+            .thenAnswer((_) async => options);
+
+        final result = await repository.searchByName('supino', limit: 15);
+
+        expect(result, options);
+        verify(() => mockLocal.searchByName('supino', limit: 15)).called(1);
+      },
+    );
   });
 }
