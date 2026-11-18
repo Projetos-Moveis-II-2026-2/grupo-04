@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olimpus/features/exercise/data/datasources/substitute_datasource.dart';
 import 'package:olimpus/features/exercise/presentation/providers/substitution_provider.dart';
+import 'package:olimpus/features/exercise/presentation/utils/exercise_labels.dart';
 
 /// Bottom sheet do assistente de substituição (#28): lista cards com
 /// imagem/nome/equipamento das substituições do exercício.
@@ -150,7 +151,9 @@ class _SubstituteCard extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (suggestion.equipment != null) Text(suggestion.equipment!),
+          if (suggestion.equipment != null &&
+              suggestion.equipment!.trim().isNotEmpty)
+            Text(equipmentLabel(suggestion.equipment)),
           if (suggestion.reason != null) Text(suggestion.reason!),
         ],
       ),

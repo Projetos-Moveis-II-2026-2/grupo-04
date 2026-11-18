@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../domain/entities/exercise.dart';
+import '../utils/exercise_labels.dart';
 
 class ExerciseCard extends StatelessWidget {
   final Exercise exercise;
@@ -75,12 +76,13 @@ class ExerciseCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      exercise.primaryMuscles ?? 'N/A',
+                      muscleListLabel(exercise.primaryMuscles),
                       style: Theme.of(context).textTheme.bodySmall
                           ?.copyWith(color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
-                    if (exercise.equipment != null)
+                    if (exercise.equipment != null &&
+                        exercise.equipment!.trim().isNotEmpty)
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,
@@ -92,7 +94,7 @@ class ExerciseCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          exercise.equipment!,
+                          equipmentLabel(exercise.equipment),
                           style: TextStyle(
                             fontSize: 10,
                             color: Theme.of(context).primaryColor,
