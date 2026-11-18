@@ -40,16 +40,24 @@ class _FakeActionFeedback extends ActionFeedback {
 class _SpyExerciseRepository implements IExerciseRepository {
   _SpyExerciseRepository({this.onSearch, this.onSync});
 
-  final Future<List<ExerciseOption>> Function(String query, int limit)?
+  final Future<List<ExerciseOption>> Function(
+    String query,
+    int limit,
+    int offset,
+  )?
   onSearch;
   final Future<void> Function()? onSync;
   int syncCalls = 0;
 
   @override
-  Future<List<ExerciseOption>> searchByName(String query, {int limit = 30}) {
+  Future<List<ExerciseOption>> searchByName(
+    String query, {
+    int limit = 30,
+    int offset = 0,
+  }) {
     final handler = onSearch;
     if (handler != null) {
-      return handler(query, limit);
+      return handler(query, limit, offset);
     }
     return Future.value(const []);
   }
@@ -180,7 +188,7 @@ void main() {
           .length;
 
       expect(builtListItems, lessThan(100));
-      expect(builtListItems, lessThanOrEqualTo(kExercisePickerMaxResults));
+      expect(builtListItems, lessThanOrEqualTo(kExercisePickerPageSize));
 
       // Filtra por termo com 41 correspondências -> limitado a 30 no banco.
       final searchFieldFinder = find.byKey(
@@ -193,10 +201,15 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       final limitedListView = tester.widget<ListView>(resultsListFinder);
-      expect(
-        limitedListView.semanticChildCount,
-        lessThanOrEqualTo(kExercisePickerMaxResults),
-      );
+      expect(limitedListView.semanticChildCount, kExercisePickerPageSize + 1);
+      final filteredBuiltItems = find
+          .descendant(
+            of: resultsListFinder,
+            matching: find.byType(ListTile, skipOffstage: false),
+          )
+          .evaluate()
+          .length;
+      expect(filteredBuiltItems, lessThanOrEqualTo(kExercisePickerPageSize));
 
       // Busca específica retorna exatamente 1 item na lista de resultados.
       await tester.enterText(searchFieldFinder, 'Supino Reto Barra');
@@ -341,10 +354,11 @@ void main() {
             throw Exception('falha ao carregar');
           }
         }),
-        workoutExerciseSearchProvider.overrideWith(
-          (ref, query) async => const [
-            ExerciseOption(id: 'agachamento', name: 'Agachamento'),
-          ],
+        workoutExerciseSearchProvider.overrideWithBuild(
+          (ref, notifier) async => const ExerciseSearchPageState(
+            items: [ExerciseOption(id: 'agachamento', name: 'Agachamento')],
+            hasMore: false,
+          ),
         ),
       ],
     );
@@ -371,7 +385,7 @@ void main() {
     final fastQuery = Completer<List<ExerciseOption>>();
 
     final spyRepo = _SpyExerciseRepository(
-      onSearch: (query, limit) {
+      onSearch: (query, limit, offset) {
         if (query.isEmpty) {
           return Future.value(const [
             ExerciseOption(id: 'init', name: 'Inicial'),
@@ -426,7 +440,7 @@ void main() {
     var seeded = false;
 
     final spyRepo = _SpyExerciseRepository(
-      onSearch: (query, limit) async {
+      onSearch: (query, limit, offset) async {
         if (!seeded) return const [];
         return const [ExerciseOption(id: 'ex-1', name: 'Remada Curvada')];
       },
@@ -482,7 +496,7 @@ void main() {
       (tester) async {
         final db = createInMemoryDb();
         final spyRepo = _SpyExerciseRepository(
-          onSearch: (_, _) async => const [],
+          onSearch: (_, _, _) async => const [],
         );
 
         await pumpApp(
@@ -605,4 +619,217 @@ void main() {
       },
     );
   });
+
+  testWidgets(
+    'catálogo com 876 itens pagina por scroll até o último exercício sem construir centenas de widgets',
+    (tester) async {
+      final db = createInMemoryDb();
+      final localDs = ExerciseLocalDataSource(db);
+      await tester.runAsync(
+        () => localDs.insertExercises(generateCatalogCompanions(876)),
+      );
+
+      await pumpFreeWorkout(tester, db: db);
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      await tester.tap(find.byKey(const Key('free_workout_exercise_field')));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      final resultsListFinder = find.byKey(
+        const Key('free_workout_exercise_results_list'),
+      );
+      expect(find.text('Exercicio Catalogo 0000'), findsOneWidget);
+      expect(find.text('Supino Variante 0139'), findsNothing);
+
+      final initialTiles = find
+          .descendant(
+            of: resultsListFinder,
+            matching: find.byType(ListTile, skipOffstage: false),
+          )
+          .evaluate()
+          .length;
+      expect(initialTiles, lessThanOrEqualTo(kExercisePickerPageSize));
+
+      var reachedLast = false;
+      for (var step = 0; step < 60; step++) {
+        if (find.text('Supino Variante 0139').evaluate().isNotEmpty) {
+          reachedLast = true;
+          break;
+        }
+        await tester.drag(resultsListFinder, const Offset(0, -3000));
+        await tester.pumpAndSettle(const Duration(seconds: 5));
+
+        final builtTiles = find
+            .descendant(
+              of: resultsListFinder,
+              matching: find.byType(ListTile, skipOffstage: false),
+            )
+            .evaluate()
+            .length;
+        expect(builtTiles, lessThanOrEqualTo(kExercisePickerPageSize));
+        expect(builtTiles, lessThan(100));
+      }
+
+      expect(reachedLast, isTrue);
+      await tester.tap(find.text('Supino Variante 0139'));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      final field = tester.widget<TextField>(
+        find.byKey(const Key('free_workout_exercise_field')),
+      );
+      expect(field.controller?.text, 'Supino Variante 0139');
+    },
+  );
+
+  testWidgets(
+    'busca reinicia paginação no topo, pagina resultados filtrados e limpar volta ao início',
+    (tester) async {
+      final db = createInMemoryDb();
+      final localDs = ExerciseLocalDataSource(db);
+      await tester.runAsync(
+        () => localDs.insertExercises(generateCatalogCompanions(876)),
+      );
+
+      await pumpFreeWorkout(tester, db: db);
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      await tester.tap(find.byKey(const Key('free_workout_exercise_field')));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      final resultsListFinder = find.byKey(
+        const Key('free_workout_exercise_results_list'),
+      );
+      // Avança além da página 1 na lista completa.
+      for (var i = 0; i < 3; i++) {
+        await tester.drag(resultsListFinder, const Offset(0, -1500));
+        await tester.pumpAndSettle(const Duration(seconds: 5));
+      }
+      expect(find.text('Exercicio Catalogo 0000'), findsNothing);
+
+      // Filtra por 'Supino' (41 correspondências: 30 na pág 1 + 11 na pág 2).
+      final searchFinder = find.byKey(
+        const Key('free_workout_exercise_search_field'),
+      );
+      await tester.enterText(searchFinder, 'Supino');
+      await tester.pump(const Duration(milliseconds: 260));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      // Deve voltar ao topo exibindo o primeiro resultado da busca.
+      expect(find.text('Supino Reto Barra'), findsOneWidget);
+      expect(find.text('Supino Variante 0139'), findsNothing);
+
+      // Rola os resultados filtrados para alcançar o último item da página 2.
+      var reachedLastFiltered = false;
+      for (var step = 0; step < 6; step++) {
+        if (find.text('Supino Variante 0139').evaluate().isNotEmpty) {
+          reachedLastFiltered = true;
+          break;
+        }
+        await tester.drag(resultsListFinder, const Offset(0, -1500));
+        await tester.pumpAndSettle(const Duration(seconds: 5));
+      }
+      expect(reachedLastFiltered, isTrue);
+
+      // Limpar a busca restaura a lista completa no topo.
+      await tester.tap(find.byTooltip('Limpar busca'));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+      expect(find.text('Exercicio Catalogo 0000'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'exibe rodapé de loading ao paginar e permite tentar de novo após erro de página',
+    (tester) async {
+      final db = createInMemoryDb();
+      final page1WithSentinel = List.generate(31, (i) {
+        final padded = i.toString().padLeft(2, '0');
+        return ExerciseOption(id: 'ex-$padded', name: 'Exercicio $padded');
+      });
+      final page2Completer = Completer<List<ExerciseOption>>();
+      var page2Attempts = 0;
+
+      final spyRepo = _SpyExerciseRepository(
+        onSearch: (query, limit, offset) {
+          if (limit == 1) {
+            return Future.value([page1WithSentinel.first]);
+          }
+          if (offset == 0) {
+            return Future.value(page1WithSentinel);
+          }
+          page2Attempts++;
+          if (page2Attempts == 1) {
+            return page2Completer.future;
+          }
+          return Future.value(const [
+            ExerciseOption(id: 'ex-30', name: 'Exercicio 30'),
+            ExerciseOption(id: 'ex-31', name: 'Exercicio 31'),
+          ]);
+        },
+      );
+
+      await pumpFreeWorkout(
+        tester,
+        db: db,
+        extraOverrides: [exerciseRepositoryProvider.overrideWithValue(spyRepo)],
+      );
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      await tester.tap(find.byKey(const Key('free_workout_exercise_field')));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      final resultsListFinder = find.byKey(
+        const Key('free_workout_exercise_results_list'),
+      );
+      final loadMoreFooterFinder = find.byKey(
+        const Key('free_workout_exercise_load_more'),
+      );
+
+      // Rola até o fim da página 1 para disparar o carregamento da página 2.
+      for (var i = 0; i < 4; i++) {
+        if (find
+            .descendant(
+              of: loadMoreFooterFinder,
+              matching: find.byType(CircularProgressIndicator),
+            )
+            .evaluate()
+            .isNotEmpty) {
+          break;
+        }
+        await tester.drag(resultsListFinder, const Offset(0, -1500));
+        await tester.pump();
+      }
+
+      expect(loadMoreFooterFinder, findsOneWidget);
+      expect(
+        find.descendant(
+          of: loadMoreFooterFinder,
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsOneWidget,
+      );
+
+      // Erro na página 2 preserva itens da página 1 e exibe rodapé de retry.
+      page2Completer.completeError(Exception('erro pagina 2'));
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      final errorFooterFinder = find.byKey(
+        const Key('free_workout_exercise_load_more_error'),
+      );
+      expect(errorFooterFinder, findsOneWidget);
+      expect(find.text('Exercicio 29'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: errorFooterFinder,
+          matching: find.text('Tentar de novo'),
+        ),
+      );
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      expect(errorFooterFinder, findsNothing);
+      expect(find.text('Exercicio 30'), findsOneWidget);
+      expect(find.text('Exercicio 31'), findsOneWidget);
+      expect(page2Attempts, 2);
+    },
+  );
 }

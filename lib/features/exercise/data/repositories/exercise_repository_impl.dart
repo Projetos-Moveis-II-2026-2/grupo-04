@@ -21,8 +21,12 @@ class ExerciseRepositoryImpl implements IExerciseRepository {
   }
 
   @override
-  Future<List<ExerciseOption>> searchByName(String query, {int limit = 30}) {
-    return _localDataSource.searchByName(query, limit: limit);
+  Future<List<ExerciseOption>> searchByName(
+    String query, {
+    int limit = 30,
+    int offset = 0,
+  }) {
+    return _localDataSource.searchByName(query, limit: limit, offset: offset);
   }
 
   @override
