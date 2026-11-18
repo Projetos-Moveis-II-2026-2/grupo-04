@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../domain/entities/exercise.dart';
+import '../../domain/entities/exercise_option.dart';
 import '../../domain/repositories/i_exercise_repository.dart';
 import '../datasources/exercise_local_datasource.dart';
 import '../datasources/exercise_remote_datasource_fake.dart';
@@ -16,6 +17,11 @@ class ExerciseRepositoryImpl implements IExerciseRepository {
   @override
   Stream<List<Exercise>> watchExercises() {
     return _localDataSource.watchAllExercises();
+  }
+
+  @override
+  Future<List<ExerciseOption>> searchByName(String query, {int limit = 30}) {
+    return _localDataSource.searchByName(query, limit: limit);
   }
 
   @override

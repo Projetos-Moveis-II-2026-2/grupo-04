@@ -6,7 +6,7 @@ import 'package:olimpus/core/providers.dart';
 import 'package:olimpus/core/providers/action_feedback_provider.dart';
 import 'package:olimpus/core/utils/ui_feedback_extension.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
-import 'package:olimpus/features/exercise/domain/entities/exercise.dart';
+import 'package:olimpus/features/exercise/domain/entities/exercise_option.dart';
 import 'package:olimpus/features/workout/presentation/providers/free_workout_exercises_provider.dart';
 import 'package:olimpus/features/workout/presentation/widgets/exercise_picker_sheet.dart';
 
@@ -60,7 +60,7 @@ class _FreeWorkoutState extends ConsumerState<_FreeWorkout> {
     seconds: _restDuration.inSeconds,
     running: false,
   ));
-  Exercise? _exercise;
+  ExerciseOption? _exercise;
   bool _exerciseInvalid = false;
   bool _saving = false;
   Timer? _timer;
@@ -178,11 +178,11 @@ class _FreeWorkoutState extends ConsumerState<_FreeWorkout> {
 
   @override
   Widget build(BuildContext context) {
-    final exercises = ref.watch(workoutExercisesProvider);
+    final catalogReady = ref.watch(workoutCatalogReadyProvider);
     final count = ref.watch(_completedSetsProvider(widget.userId));
     const buttonStyle = ButtonStyle(enableFeedback: false);
-    final isCatalogLoading = exercises.isLoading && !exercises.hasValue;
-    final hasCatalogError = exercises.hasError && !exercises.hasValue;
+    final isCatalogLoading = catalogReady.isLoading && !catalogReady.hasValue;
+    final hasCatalogError = catalogReady.hasError && !catalogReady.hasValue;
 
     return ListView(
       padding: const EdgeInsets.all(16),

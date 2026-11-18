@@ -2,17 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:olimpus/features/exercise/domain/entities/exercise.dart';
+import 'package:olimpus/features/exercise/domain/entities/exercise_option.dart';
 import 'package:olimpus/features/workout/presentation/providers/free_workout_exercises_provider.dart';
 
-/// Limite máximo de resultados renderizados no seletor de exercícios.
-const int kExercisePickerMaxResults = 30;
-
-/// Exibe um bottom sheet modal com busca e lista lazy para seleção de exercício.
+/// Exibe um bottom sheet modal com busca paginada no banco e lista lazy para
+/// seleção de exercício.
 ///
-/// Retorna o exercício escolhido ou `null` caso o usuário feche sem selecionar.
-Future<Exercise?> showExercisePickerSheet(BuildContext context) {
-  return showModalBottomSheet<Exercise>(
+/// Retorna a opção escolhida ou `null` caso o usuário feche sem selecionar.
+Future<ExerciseOption?> showExercisePickerSheet(BuildContext context) {
+  return showModalBottomSheet<ExerciseOption>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
@@ -57,19 +55,24 @@ class _ExercisePickerSheetBodyState
     _debounce?.cancel();
     _debounce = Timer(_debounceDuration, () {
       if (!mounted) return;
-      setState(() => _query = value.trim());
+      final normalized = value.trim();
+      if (normalized != _query) {
+        setState(() => _query = normalized);
+      }
     });
   }
 
   void _clearQuery() {
     _debounce?.cancel();
     _searchController.clear();
-    setState(() => _query = '');
+    if (_query.isNotEmpty) {
+      setState(() => _query = '');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final asyncExercises = ref.watch(workoutExercisesProvider);
+    final catalogReady = ref.watch(workoutCatalogReadyProvider);
     final theme = Theme.of(context);
     final viewInsetsBottom = MediaQuery.viewInsetsOf(context).bottom;
 
@@ -129,42 +132,13 @@ class _ExercisePickerSheetBodyState
             ),
           ),
           Expanded(
-            child: switch (asyncExercises) {
-              AsyncValue(:final isLoading, hasValue: false) when isLoading =>
-                const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 12),
-                      Text('Carregando catálogo…'),
-                    ],
-                  ),
-                ),
-              AsyncValue(:final value?) => _buildResults(context, value, theme),
-              AsyncValue(hasError: true) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Erro ao carregar exercícios.',
-                        style: theme.textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.tonal(
-                        onPressed: () {
-                          ref.invalidate(workoutExercisesProvider);
-                        },
-                        child: const Text('Tentar de novo'),
-                      ),
-                    ],
-                  ),
-                ),
+            child: switch (catalogReady) {
+              AsyncValue(isLoading: true, hasValue: false) => _buildLoading(),
+              AsyncValue(hasError: true, hasValue: false) => _buildError(
+                theme,
+                onRetry: () => ref.invalidate(workoutCatalogReadyProvider),
               ),
-              _ => const SizedBox.shrink(),
+              _ => _buildSearchBody(theme),
             },
           ),
         ],
@@ -172,22 +146,61 @@ class _ExercisePickerSheetBodyState
     );
   }
 
+  Widget _buildSearchBody(ThemeData theme) {
+    final asyncResults = ref.watch(workoutExerciseSearchProvider(_query));
+    return switch (asyncResults) {
+      AsyncValue(isLoading: true, hasValue: false) => _buildLoading(),
+      AsyncValue(:final value?) => _buildResults(context, value, theme),
+      AsyncValue(hasError: true) => _buildError(
+        theme,
+        onRetry: () => ref.invalidate(workoutExerciseSearchProvider(_query)),
+      ),
+      _ => const SizedBox.shrink(),
+    };
+  }
+
+  Widget _buildLoading() {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 12),
+          Text('Carregando catálogo…'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(ThemeData theme, {required VoidCallback onRetry}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Erro ao carregar exercícios.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonal(
+              onPressed: onRetry,
+              child: const Text('Tentar de novo'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildResults(
     BuildContext context,
-    List<Exercise> exercises,
+    List<ExerciseOption> results,
     ThemeData theme,
   ) {
-    final normalizedQuery = _query.toLowerCase();
-    final filtered = exercises
-        .where(
-          (exercise) =>
-              normalizedQuery.isEmpty ||
-              exercise.name.toLowerCase().contains(normalizedQuery),
-        )
-        .take(kExercisePickerMaxResults)
-        .toList(growable: false);
-
-    if (filtered.isEmpty) {
+    if (results.isEmpty) {
       return Center(
         child: Text(
           'Nenhum exercício encontrado',
@@ -200,12 +213,12 @@ class _ExercisePickerSheetBodyState
       key: const Key('free_workout_exercise_results_list'),
       controller: widget.scrollController,
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: filtered.length,
+      itemCount: results.length,
       itemBuilder: (context, index) {
-        final exercise = filtered[index];
+        final option = results[index];
         return ListTile(
-          title: Text(exercise.name),
-          onTap: () => Navigator.of(context).pop(exercise),
+          title: Text(option.name),
+          onTap: () => Navigator.of(context).pop(option),
         );
       },
     );
