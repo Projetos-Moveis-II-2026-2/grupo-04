@@ -201,10 +201,15 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       final limitedListView = tester.widget<ListView>(resultsListFinder);
-      expect(
-        limitedListView.semanticChildCount,
-        lessThanOrEqualTo(kExercisePickerPageSize),
-      );
+      expect(limitedListView.semanticChildCount, kExercisePickerPageSize + 1);
+      final filteredBuiltItems = find
+          .descendant(
+            of: resultsListFinder,
+            matching: find.byType(ListTile, skipOffstage: false),
+          )
+          .evaluate()
+          .length;
+      expect(filteredBuiltItems, lessThanOrEqualTo(kExercisePickerPageSize));
 
       // Busca específica retorna exatamente 1 item na lista de resultados.
       await tester.enterText(searchFieldFinder, 'Supino Reto Barra');
