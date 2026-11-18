@@ -39,7 +39,7 @@ void main() {
 
         expect(find.text('Supino Reto'), findsOneWidget);
         expect(find.text('Músculo Alvo'), findsOneWidget);
-        expect(find.text('CHEST'), findsOneWidget);
+        expect(find.text('Peito'), findsOneWidget);
         expect(find.text('Instruções'), findsOneWidget);
         expect(
           find.text('Deite no banco e empurre a barra para cima.'),
@@ -67,7 +67,7 @@ void main() {
         await tester.pump();
 
         expect(find.text('Prancha'), findsOneWidget);
-        expect(find.text('N/A'), findsOneWidget);
+        expect(find.text('—'), findsWidgets);
         expect(
           find.text('Nenhuma instrução disponível para este exercício.'),
           findsOneWidget,
