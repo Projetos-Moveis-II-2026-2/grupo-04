@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:olimpus/core/widgets/app_error_widget.dart';
 
+import '../../domain/entities/streak.dart';
 import '../../domain/utils/calendar_utils.dart';
 import '../providers/progress_providers.dart';
 import '../widgets/monthly_summary_card.dart';
+import '../widgets/streak_card.dart';
 import '../widgets/workout_calendar.dart';
 
-/// Tela de progresso com o calendário mensal de treinos realizados.
+/// Tela de progresso com os streaks e o calendário mensal de treinos.
 class ProgressPage extends ConsumerWidget {
   const ProgressPage({super.key});
 
@@ -18,6 +20,8 @@ class ProgressPage extends ConsumerWidget {
     final month = ref.watch(selectedMonthProvider);
     final summaryAsync = ref.watch(monthlyWorkoutSummaryProvider);
     final summary = summaryAsync.value;
+    final workoutStreakAsync = ref.watch(workoutStreakProvider);
+    final waterStreakAsync = ref.watch(waterStreakProvider);
     final currentMonth = firstDayOfMonth(DateTime.now());
     final canGoToNextMonth = month.isBefore(currentMonth);
 
@@ -28,6 +32,18 @@ class ProgressPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _StreakCardAsync(
+              streakAsync: workoutStreakAsync,
+              type: StreakType.workout,
+              onRetry: () => ref.invalidate(workoutStreakProvider),
+            ),
+            const SizedBox(height: 12),
+            _StreakCardAsync(
+              streakAsync: waterStreakAsync,
+              type: StreakType.water,
+              onRetry: () => ref.invalidate(waterStreakProvider),
+            ),
+            const SizedBox(height: 16),
             summaryAsync.when(
               data: (summary) => MonthlySummaryCard(summary: summary),
               loading: () => const Card(
@@ -90,6 +106,45 @@ class ProgressPage extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StreakCardAsync extends StatelessWidget {
+  const _StreakCardAsync({
+    required this.streakAsync,
+    required this.type,
+    required this.onRetry,
+  });
+
+  final AsyncValue<Streak> streakAsync;
+  final StreakType type;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return streakAsync.when(
+      data: (streak) => StreakCard(streak: streak, type: type),
+      loading: () => Card(
+        elevation: 0,
+        child: SizedBox(
+          height: 86,
+          child: Center(
+            child: Text(
+              type == StreakType.workout
+                  ? 'Calculando streak de treino...'
+                  : 'Calculando streak de hidratação...',
+            ),
+          ),
+        ),
+      ),
+      error: (error, stackTrace) => Card(
+        child: AppErrorWidget(
+          error: error,
+          stackTrace: stackTrace,
+          onRetry: onRetry,
         ),
       ),
     );
