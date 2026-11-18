@@ -1,9 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/exercise.dart';
 import '../providers/exercise_providers.dart';
+import '../widgets/exercise_motion_image.dart';
 
 class ExerciseDetailsPage extends ConsumerWidget {
   final Exercise? exercise;
@@ -62,68 +62,19 @@ class ExerciseDetailsPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // GIF ou Imagem do Exercício
-            if (currentExercise.firstImageUrl != null)
-              Container(
-                height: 300,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Theme.of(context).cardColor,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: currentExercise.firstImageUrl!.startsWith('assets/')
-                    ? Image.asset(
-                        currentExercise.firstImageUrl!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.image_not_supported,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Substitua este arquivo vazio na pasta assets/gifs',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                            ),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: currentExercise.firstImageUrl!,
-                        fit: BoxFit.contain,
-                        placeholder: (context, url) =>
-                            const Center(child: CircularProgressIndicator()),
-                        errorWidget: (context, url, error) => const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-              )
-            else
-              Container(
-                height: 300,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Theme.of(context).cardColor,
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.fitness_center,
-                    size: 60,
-                    color: Colors.grey,
-                  ),
-                ),
+            // Imagem do Exercício
+            Container(
+              height: 300,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).cardColor,
               ),
+              clipBehavior: Clip.antiAlias,
+              child: ExerciseMotionImage(
+                frames: currentExercise.imageUrlList,
+                fit: BoxFit.contain,
+              ),
+            ),
 
             const SizedBox(height: 24),
 

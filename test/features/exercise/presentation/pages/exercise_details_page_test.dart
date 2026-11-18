@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:olimpus/features/exercise/domain/entities/exercise.dart';
 import 'package:olimpus/features/exercise/presentation/pages/exercise_details_page.dart';
 import 'package:olimpus/features/exercise/presentation/providers/exercise_providers.dart';
+import 'package:olimpus/features/exercise/presentation/widgets/exercise_motion_image.dart';
 
 import '../../../../helpers/pump_app.dart';
 
@@ -138,7 +139,7 @@ void main() {
         id: 'ex-3',
         externalId: 'asset_ex',
         name: 'Remada Curvada',
-        imageUrls: 'assets/gifs/inexistente.gif',
+        imageUrls: 'assets/images/inexistente.jpg',
         synced: true,
         updatedAt: now,
       );
@@ -147,10 +148,53 @@ void main() {
       await tester.pumpAndSettleBounded();
 
       expect(find.byIcon(Icons.image_not_supported), findsOneWidget);
-      expect(
-        find.text('Substitua este arquivo vazio na pasta assets/gifs'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('assets/gifs'), findsNothing);
     });
+
+    testWidgets(
+      'anima alternância entre os dois quadros do exercício na tela de detalhe',
+      (tester) async {
+        final comDoisQuadros = Exercise(
+          id: 'ex-4',
+          externalId: 'dumbbell_flyes',
+          name: 'Crucifixo com Halteres',
+          imageUrls: 'assets/flyes/0.jpg, assets/flyes/1.jpg',
+          synced: true,
+          updatedAt: now,
+        );
+
+        await pumpApp(
+          tester,
+          child: ExerciseDetailsPage(exercise: comDoisQuadros),
+        );
+        await tester.pump();
+
+        final motion = tester.widget<ExerciseMotionImage>(
+          find.byType(ExerciseMotionImage),
+        );
+        expect(motion.animate, isTrue);
+        expect(motion.frames, ['assets/flyes/0.jpg', 'assets/flyes/1.jpg']);
+
+        AnimatedSwitcher switcher() =>
+            tester.widget<AnimatedSwitcher>(find.byType(AnimatedSwitcher));
+
+        expect(
+          switcher().child?.key,
+          const ValueKey<String>('assets/flyes/0.jpg'),
+        );
+
+        await tester.pump(const Duration(milliseconds: 700));
+        expect(
+          switcher().child?.key,
+          const ValueKey<String>('assets/flyes/1.jpg'),
+        );
+
+        await tester.pump(const Duration(milliseconds: 700));
+        expect(
+          switcher().child?.key,
+          const ValueKey<String>('assets/flyes/0.jpg'),
+        );
+      },
+    );
   });
 }

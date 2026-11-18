@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../domain/entities/exercise.dart';
+import 'exercise_motion_image.dart';
 
 class ExerciseCard extends StatelessWidget {
   final Exercise exercise;
@@ -22,41 +22,25 @@ class ExerciseCard extends StatelessWidget {
             SizedBox(
               width: 100,
               height: 100,
-              child: exercise.firstImageUrl != null
-                  ? (exercise.firstImageUrl!.startsWith('assets/')
-                        ? Image.asset(
-                            exercise.firstImageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Center(
-                                  child: Icon(
-                                    Icons.fitness_center,
-                                    size: 40,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: exercise.firstImageUrl!,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                            errorWidget: (context, url, error) => const Center(
-                              child: Icon(
-                                Icons.fitness_center,
-                                size: 40,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ))
-                  : const Center(
-                      child: Icon(
-                        Icons.fitness_center,
-                        size: 40,
-                        color: Colors.grey,
-                      ),
-                    ),
+              child: ExerciseMotionImage(
+                frames: exercise.imageUrlList,
+                fit: BoxFit.cover,
+                animate: false,
+                fallback: const Center(
+                  child: Icon(
+                    Icons.fitness_center,
+                    size: 40,
+                    color: Colors.grey,
+                  ),
+                ),
+                errorWidget: const Center(
+                  child: Icon(
+                    Icons.fitness_center,
+                    size: 40,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
             ),
 
             // Informações

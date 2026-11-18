@@ -10,6 +10,7 @@ import 'package:olimpus/features/exercise/domain/repositories/i_exercise_reposit
 import 'package:olimpus/features/exercise/presentation/pages/exercise_library_page.dart';
 import 'package:olimpus/features/exercise/presentation/providers/exercise_providers.dart';
 import 'package:olimpus/features/exercise/presentation/widgets/exercise_card.dart';
+import 'package:olimpus/features/exercise/presentation/widgets/exercise_motion_image.dart';
 
 import '../../../../helpers/pump_app.dart';
 
@@ -231,5 +232,47 @@ void main() {
       expect(container.read(selectedMuscleGroupProvider), isNull);
       expect(find.byType(ExerciseCard), findsNWidgets(3));
     });
+
+    testWidgets(
+      'ExerciseCard mantém imagem estática no primeiro quadro (animate: false)',
+      (tester) async {
+        final comDoisQuadros = Exercise(
+          id: 'ex-fly',
+          externalId: 'dumbbell_flyes',
+          name: 'Crucifixo',
+          primaryMuscles: 'chest',
+          imageUrls: 'assets/flyes/0.jpg, assets/flyes/1.jpg',
+          synced: true,
+          updatedAt: now,
+        );
+
+        await pumpApp(
+          tester,
+          child: Scaffold(body: ExerciseCard(exercise: comDoisQuadros)),
+        );
+        await tester.pump();
+
+        final motion = tester.widget<ExerciseMotionImage>(
+          find.byType(ExerciseMotionImage),
+        );
+        expect(motion.animate, isFalse);
+        expect(
+          find.byKey(const ValueKey<String>('assets/flyes/0.jpg')),
+          findsOneWidget,
+        );
+        expect(find.byType(AnimatedSwitcher), findsNothing);
+
+        await tester.pump(const Duration(seconds: 2));
+
+        expect(
+          find.byKey(const ValueKey<String>('assets/flyes/0.jpg')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey<String>('assets/flyes/1.jpg')),
+          findsNothing,
+        );
+      },
+    );
   });
 }
