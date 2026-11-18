@@ -32,6 +32,24 @@ Antes de rodar o projeto, certifique-se de estar com o ambiente configurado corr
 
 ---
 
+## 🧪 Testes de integração
+
+Os testes de `test/integration/` exercitam a fila offline do Drift e, quando há um Supabase local, autenticação, sincronização com o Postgres e isolamento por RLS entre usuários. A parte Drift-only roda sempre; os testes de Supabase são pulados automaticamente quando `SUPABASE_TEST_URL` e `SUPABASE_TEST_ANON_KEY` não estão definidas.
+
+```bash
+# Sobe o stack local e exporta as credenciais de teste
+supabase start
+eval "$(supabase status -o env)"
+export SUPABASE_TEST_URL="${API_URL:-$SUPABASE_URL}"
+export SUPABASE_TEST_ANON_KEY="${ANON_KEY:-$PUBLISHABLE_KEY}"
+
+flutter test test/integration/
+```
+
+No CI (`.github/workflows/integration.yml`), o Supabase local sobe automaticamente em pull requests para `dev` e `main`.
+
+---
+
 ## 🏗️ Estrutura e Arquitetura do Projeto
 
 Para mantermos o código organizado, escalável e testável, utilizamos uma abordagem **Feature-First** (divisão por funcionalidades) baseada nos princípios de Clean Architecture. 
