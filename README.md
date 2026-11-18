@@ -44,6 +44,25 @@ Dentro de `lib/features/`, cada funcionalidade (como `workout`, `water`, `auth`,
 
 ---
 
+## 🧪 Testes
+
+Os testes unitários e de widget ficam em `test/`, espelhando a estrutura de `lib/`.
+
+```bash
+# Todos os testes
+flutter test
+
+# Testes com relatório de cobertura (gera coverage/lcov.info)
+flutter test --coverage
+
+# Verifica a cobertura mínima de 60% em lib/features/*/domain/
+dart run tool/coverage_check.dart
+```
+
+O script `tool/coverage_check.dart` lê `coverage/lcov.info`, calcula a cobertura de linhas por arquivo de `lib/features/*/domain/` e encerra com código de erro caso o total fique abaixo de **60%**.
+
+---
+
 ## 🤝 Como Contribuir e Padrão de Issues
 
 Temos um fluxo muito bem estruturado para garantir a rastreabilidade e a qualidade das entregas. **Antes de implementar qualquer issue, é obrigatório ler o nosso fluxo de trabalho!**
