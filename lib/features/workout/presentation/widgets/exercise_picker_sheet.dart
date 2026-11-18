@@ -39,35 +39,77 @@ class _ExercisePickerSheetBody extends ConsumerStatefulWidget {
 class _ExercisePickerSheetBodyState
     extends ConsumerState<_ExercisePickerSheetBody> {
   static const _debounceDuration = Duration(milliseconds: 250);
+  static const double _loadMoreScrollThreshold = 200;
 
   final _searchController = TextEditingController();
   Timer? _debounce;
   String _query = '';
 
   @override
+  void initState() {
+    super.initState();
+    widget.scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ExercisePickerSheetBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollController != widget.scrollController) {
+      oldWidget.scrollController.removeListener(_onScroll);
+      widget.scrollController.addListener(_onScroll);
+    }
+  }
+
+  @override
   void dispose() {
+    widget.scrollController.removeListener(_onScroll);
     _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!mounted || !widget.scrollController.hasClients) return;
+    final position = widget.scrollController.position;
+    if (!position.hasContentDimensions || !position.hasPixels) return;
+    if (position.pixels < position.maxScrollExtent - _loadMoreScrollThreshold) {
+      return;
+    }
+
+    final pageState = ref.read(workoutExerciseSearchProvider(_query)).value;
+    if (pageState == null ||
+        pageState.isLoadingMore ||
+        !pageState.hasMore ||
+        pageState.loadMoreError != null) {
+      return;
+    }
+
+    unawaited(
+      ref.read(workoutExerciseSearchProvider(_query).notifier).loadMore(),
+    );
+  }
+
+  void _applyQuery(String rawQuery) {
+    final normalized = rawQuery.trim();
+    if (normalized == _query) return;
+    if (widget.scrollController.hasClients) {
+      widget.scrollController.jumpTo(0);
+    }
+    setState(() => _query = normalized);
   }
 
   void _onQueryChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(_debounceDuration, () {
       if (!mounted) return;
-      final normalized = value.trim();
-      if (normalized != _query) {
-        setState(() => _query = normalized);
-      }
+      _applyQuery(value);
     });
   }
 
   void _clearQuery() {
     _debounce?.cancel();
     _searchController.clear();
-    if (_query.isNotEmpty) {
-      setState(() => _query = '');
-    }
+    _applyQuery('');
   }
 
   @override
@@ -109,7 +151,7 @@ class _ExercisePickerSheetBodyState
                   onChanged: _onQueryChanged,
                   onSubmitted: (submitted) {
                     _debounce?.cancel();
-                    setState(() => _query = submitted.trim());
+                    _applyQuery(submitted);
                   },
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
@@ -197,10 +239,10 @@ class _ExercisePickerSheetBodyState
 
   Widget _buildResults(
     BuildContext context,
-    List<ExerciseOption> results,
+    ExerciseSearchPageState pageState,
     ThemeData theme,
   ) {
-    if (results.isEmpty) {
+    if (pageState.items.isEmpty) {
       return Center(
         child: Text(
           'Nenhum exercício encontrado',
@@ -209,18 +251,70 @@ class _ExercisePickerSheetBodyState
       );
     }
 
+    final hasFooter =
+        pageState.hasMore ||
+        pageState.isLoadingMore ||
+        pageState.loadMoreError != null;
+    final itemCount = pageState.items.length + (hasFooter ? 1 : 0);
+
     return ListView.builder(
       key: const Key('free_workout_exercise_results_list'),
       controller: widget.scrollController,
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: results.length,
+      itemCount: itemCount,
       itemBuilder: (context, index) {
-        final option = results[index];
+        if (index >= pageState.items.length) {
+          return _buildLoadMoreFooter(theme, pageState);
+        }
+        final option = pageState.items[index];
         return ListTile(
           title: Text(option.name),
           onTap: () => Navigator.of(context).pop(option),
         );
       },
+    );
+  }
+
+  Widget _buildLoadMoreFooter(
+    ThemeData theme,
+    ExerciseSearchPageState pageState,
+  ) {
+    if (pageState.loadMoreError != null) {
+      return Padding(
+        key: const Key('free_workout_exercise_load_more_error'),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Erro ao carregar mais exercícios.',
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              onPressed: () => ref
+                  .read(workoutExerciseSearchProvider(_query).notifier)
+                  .loadMore(),
+              child: const Text('Tentar de novo'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      key: const Key('free_workout_exercise_load_more'),
+      height: 56,
+      child: pageState.isLoadingMore
+          ? const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : null,
     );
   }
 }

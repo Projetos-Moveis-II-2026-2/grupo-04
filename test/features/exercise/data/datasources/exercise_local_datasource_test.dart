@@ -123,5 +123,125 @@ void main() {
         expect(await dataSource.searchByName('_%'), isEmpty);
       },
     );
+
+    test(
+      'pagina com offset e limit mantendo ordem estável sem lacunas',
+      () async {
+        final names = List.generate(
+          65,
+          (i) => 'Exercicio ${i.toString().padLeft(2, '0')}',
+        ).reversed.toList();
+        await dataSource.insertExercises(buildCompanions(names));
+
+        final page1 = await dataSource.searchByName('', limit: 30, offset: 0);
+        final page2 = await dataSource.searchByName('', limit: 30, offset: 30);
+        final page3 = await dataSource.searchByName('', limit: 30, offset: 60);
+        final beyondEnd = await dataSource.searchByName(
+          '',
+          limit: 30,
+          offset: 65,
+        );
+        final negativeOffset = await dataSource.searchByName(
+          '',
+          limit: 5,
+          offset: -10,
+        );
+
+        expect(page1, hasLength(30));
+        expect(page2, hasLength(30));
+        expect(page3, hasLength(5));
+        expect(beyondEnd, isEmpty);
+        expect(negativeOffset, page1.take(5).toList());
+
+        final allPaged = [...page1, ...page2, ...page3];
+        expect(allPaged, hasLength(65));
+        expect(allPaged.map((e) => e.id).toSet(), hasLength(65));
+        expect(allPaged.first.name, 'Exercicio 00');
+        expect(allPaged.last.name, 'Exercicio 64');
+      },
+    );
+
+    test('desempata por id quando há nomes duplicados evitando repetição ou lacuna', () async {
+      final now = DateTime(2026, 9, 16);
+      await dataSource.insertExercises([
+        ExerciseLibraryTableCompanion.insert(
+          id: 'id-d',
+          externalId: 'ext-d',
+          name: 'Supino',
+          updatedAt: now,
+        ),
+        ExerciseLibraryTableCompanion.insert(
+          id: 'id-b',
+          externalId: 'ext-b',
+          name: 'Supino',
+          updatedAt: now,
+        ),
+        ExerciseLibraryTableCompanion.insert(
+          id: 'id-a',
+          externalId: 'ext-a',
+          name: 'Supino',
+          updatedAt: now,
+        ),
+        ExerciseLibraryTableCompanion.insert(
+          id: 'id-e',
+          externalId: 'ext-e',
+          name: 'Supino',
+          updatedAt: now,
+        ),
+        ExerciseLibraryTableCompanion.insert(
+          id: 'id-c',
+          externalId: 'ext-c',
+          name: 'Supino',
+          updatedAt: now,
+        ),
+      ]);
+
+      final page1 = await dataSource.searchByName('', limit: 2, offset: 0);
+      final page2 = await dataSource.searchByName('', limit: 2, offset: 2);
+      final page3 = await dataSource.searchByName('', limit: 2, offset: 4);
+
+      expect(page1.map((e) => e.id), ['id-a', 'id-b']);
+      expect(page2.map((e) => e.id), ['id-c', 'id-d']);
+      expect(page3.map((e) => e.id), ['id-e']);
+    });
+
+    test(
+      'combina query com offset e suporta estratégia limit + 1 para hasMore',
+      () async {
+        final companions = [
+          ...buildCompanions(
+            List.generate(35, (i) => 'Supino ${i.toString().padLeft(2, '0')}'),
+          ),
+          for (var i = 0; i < 20; i++)
+            ExerciseLibraryTableCompanion.insert(
+              id: 'ag-$i',
+              externalId: 'ext-ag-$i',
+              name: 'Agachamento ${i.toString().padLeft(2, '0')}',
+              updatedAt: DateTime(2026, 9, 16),
+            ),
+        ];
+        await dataSource.insertExercises(companions);
+
+        // Pede pageSize + 1 (21) para detectar se há próxima página.
+        final firstProbe = await dataSource.searchByName(
+          'supino',
+          limit: 21,
+          offset: 0,
+        );
+        expect(firstProbe, hasLength(21));
+        final firstPage = firstProbe.take(20).toList();
+        expect(firstPage.first.name, 'Supino 00');
+        expect(firstPage.last.name, 'Supino 19');
+
+        final secondProbe = await dataSource.searchByName(
+          'supino',
+          limit: 21,
+          offset: 20,
+        );
+        expect(secondProbe, hasLength(15));
+        expect(secondProbe.first.name, 'Supino 20');
+        expect(secondProbe.last.name, 'Supino 34');
+      },
+    );
   });
 }
