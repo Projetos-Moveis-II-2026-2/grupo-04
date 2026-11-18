@@ -57,4 +57,61 @@ class ProgressRepositoryImpl implements IProgressRepository {
       );
     });
   }
+
+  @override
+  Stream<Set<DateTime>> watchTrainedDays(String userId) {
+    final query = db.select(db.workoutSessions)
+      ..where((tbl) => tbl.userId.equals(userId) & tbl.completedAt.isNotNull());
+
+    return query.watch().map(
+      (sessions) =>
+          sessions.map((session) => normalizeDay(session.completedAt!)).toSet(),
+    );
+  }
+
+  @override
+  Stream<Set<DateTime>> watchWaterGoalDays(String userId, int dailyGoalMl) {
+    final query = db.select(db.waterIntake)
+      ..where((tbl) => tbl.userId.equals(userId));
+
+    return query.watch().map((entries) {
+      final totalsByDay = <String, int>{};
+
+      for (final entry in entries) {
+        final dayKey = entry.date.isNotEmpty
+            ? entry.date
+            : _localDateKey(entry.recordedAt);
+        totalsByDay[dayKey] = (totalsByDay[dayKey] ?? 0) + entry.amountMl;
+      }
+
+      final goalDays = <DateTime>{};
+      totalsByDay.forEach((dayKey, totalMl) {
+        if (totalMl < dailyGoalMl) return;
+        final day = _parseLocalDate(dayKey);
+        if (day != null) goalDays.add(day);
+      });
+
+      return goalDays;
+    });
+  }
+
+  static String _localDateKey(DateTime date) {
+    final local = date.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  static DateTime? _parseLocalDate(String value) {
+    final parts = value.split('-');
+    if (parts.length != 3) return null;
+
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) return null;
+
+    return DateTime(year, month, day);
+  }
 }
