@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:olimpus/core/providers/action_feedback_provider.dart';
 
 import '../../../../core/providers.dart';
+
+import 'package:olimpus/features/profile/presentation/providers/profile_providers.dart';
 import 'package:olimpus/features/water/presentation/providers/water_providers.dart';
 import 'package:olimpus/features/water/presentation/widgets/edit_water_goal_dialog.dart';
+
 import '../providers/auth_notifier.dart';
 import '../providers/auth_providers.dart';
 
@@ -20,11 +24,12 @@ class SettingsPage extends ConsumerWidget {
         (themeMode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final user = ref.watch(currentUserProvider);
+    final userProfileAsync = ref.watch(userProfileProvider);
+    final displayName = userProfileAsync.value?.displayName;
+    final feedback = ref.watch(actionFeedbackProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Configurações'),
-      ),
+      appBar: AppBar(title: const Text('Configurações')),
       body: ListView(
         children: [
           if (user != null) ...[
@@ -34,7 +39,9 @@ class SettingsPage extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer,
                     child: Icon(
                       Icons.person,
                       size: 32,
@@ -46,19 +53,41 @@ class SettingsPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Conta',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                        Text(
-                          user.email,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        if (displayName != null &&
+                            displayName.trim().isNotEmpty) ...[
+                          Text(
+                            displayName,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            user.email,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ] else ...[
+                          Text(
+                            'Conta',
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                          Text(
+                            user.email,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -74,13 +103,26 @@ class SettingsPage extends ConsumerWidget {
               themeMode == ThemeMode.system
                   ? 'Seguir sistema'
                   : isDark
-                      ? 'Modo Escuro'
-                      : 'Modo Claro',
+                  ? 'Modo Escuro'
+                  : 'Modo Claro',
             ),
             trailing: Switch(
               value: isDark,
               onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
             ),
+          ),
+          const Divider(),
+          SwitchListTile(
+            secondary: const Icon(Icons.vibration),
+            title: const Text('Vibração'),
+            value: feedback.vibration,
+            onChanged: ref.read(actionFeedbackProvider.notifier).setVibration,
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.volume_up_outlined),
+            title: const Text('Som de feedback'),
+            value: feedback.sound,
+            onChanged: ref.read(actionFeedbackProvider.notifier).setSound,
           ),
           const Divider(),
           ListTile(

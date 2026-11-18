@@ -45,13 +45,12 @@ class WaterIntakeRecord extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        remoteId,
-        userId,
-        amountMl,
-        recordedAt,
-        date,
-        synced,
-      ];
+    id,
+    remoteId,
+    userId,
+    amountMl,
+    recordedAt,
+    date,
+    synced,
+  ];
 }
-

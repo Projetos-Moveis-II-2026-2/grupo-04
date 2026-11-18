@@ -6,10 +6,7 @@ import 'package:go_router/go_router.dart';
 /// Envolve as 4 branches do [StatefulShellRoute] e preserva
 /// o estado e pilha de navegação de cada aba via [StatefulNavigationShell].
 class ScaffoldWithNavBar extends StatelessWidget {
-  const ScaffoldWithNavBar({
-    required this.navigationShell,
-    super.key,
-  });
+  const ScaffoldWithNavBar({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 

@@ -24,8 +24,9 @@ class WeeklyWaterChart extends StatelessWidget {
 
     const barPrimaryColor = Color(0xFF0288D1);
     const barTodayColor = Color(0xFF00ACC1);
-    final barEmptyColor =
-        isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFE0E0E0);
+    final barEmptyColor = isDark
+        ? Colors.white.withValues(alpha: 0.1)
+        : const Color(0xFFE0E0E0);
 
     final maxVal = summaries.fold<int>(
       dailyGoalMl,
@@ -120,8 +121,10 @@ class WeeklyWaterChart extends StatelessWidget {
                           : const Color(0xFF263238),
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         final summary = summaries[group.x.toInt()];
-                        final formatted =
-                            NumberFormat('#,###', 'pt_BR').format(summary.totalMl);
+                        final formatted = NumberFormat(
+                          '#,###',
+                          'pt_BR',
+                        ).format(summary.totalMl);
                         return BarTooltipItem(
                           '${summary.dayOfWeekAbbr}${summary.isToday ? ' (Hoje)' : ''}\n',
                           const TextStyle(
@@ -199,8 +202,8 @@ class WeeklyWaterChart extends StatelessWidget {
                           color: !hasValue
                               ? barEmptyColor
                               : (summary.isToday
-                                  ? barTodayColor
-                                  : barPrimaryColor),
+                                    ? barTodayColor
+                                    : barPrimaryColor),
                           width: 22,
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(6),

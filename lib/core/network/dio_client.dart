@@ -29,11 +29,8 @@ abstract final class DioClient {
     final retry = RetryInterceptor(
       dio: dio,
       maxRetries: maxRetries,
-      retryDelays: retryDelays ??
-          const [
-            Duration(seconds: 1),
-            Duration(seconds: 2),
-          ],
+      retryDelays:
+          retryDelays ?? const [Duration(seconds: 1), Duration(seconds: 2)],
     );
 
     dio.interceptors.addAll([

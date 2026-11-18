@@ -16,7 +16,8 @@ class EditWaterGoalDialog extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<EditWaterGoalDialog> createState() => _EditWaterGoalDialogState();
+  ConsumerState<EditWaterGoalDialog> createState() =>
+      _EditWaterGoalDialogState();
 }
 
 class _EditWaterGoalDialogState extends ConsumerState<EditWaterGoalDialog> {
@@ -131,4 +132,3 @@ class _EditWaterGoalDialogState extends ConsumerState<EditWaterGoalDialog> {
     );
   }
 }
-

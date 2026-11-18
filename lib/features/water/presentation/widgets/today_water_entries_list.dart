@@ -37,7 +37,9 @@ class TodayWaterEntriesList extends StatelessWidget {
               Icon(
                 Icons.water_drop_outlined,
                 size: 48,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.4,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -52,7 +54,9 @@ class TodayWaterEntriesList extends StatelessWidget {
                 'Adicione seu primeiro copo d\'água do dia para acompanhar seu progresso.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.8,
+                  ),
                 ),
               ),
             ],
@@ -98,8 +102,9 @@ class TodayWaterEntriesList extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
                 side: BorderSide(
-                  color:
-                      theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.25,
+                  ),
                 ),
               ),
               child: ListTile(
@@ -143,4 +148,3 @@ class TodayWaterEntriesList extends StatelessWidget {
     );
   }
 }
-

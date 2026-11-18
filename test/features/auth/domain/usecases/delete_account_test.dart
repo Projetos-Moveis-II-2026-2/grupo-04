@@ -26,8 +26,7 @@ void main() {
 
   test('should propagate repository exceptions', () async {
     // arrange
-    when(() => mockRepo.deleteAccount())
-        .thenThrow(Exception('delete failed'));
+    when(() => mockRepo.deleteAccount()).thenThrow(Exception('delete failed'));
     // act & assert
     expect(() => usecase(), throwsException);
   });

@@ -9,11 +9,7 @@ abstract base class AppException implements Exception {
   final String? code;
   final Object? originalError;
 
-  const AppException(
-    this.message, {
-    this.code,
-    this.originalError,
-  });
+  const AppException(this.message, {this.code, this.originalError});
 
   @override
   String toString() => message;
@@ -113,7 +109,8 @@ abstract base class AppException implements Exception {
 
         if (statusCode != null && statusCode >= 500) {
           return ServerException(
-            serverMsg ?? 'Instabilidade no servidor. Tente novamente mais tarde.',
+            serverMsg ??
+                'Instabilidade no servidor. Tente novamente mais tarde.',
             code: statusCode.toString(),
             originalError: error,
           );

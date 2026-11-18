@@ -18,13 +18,19 @@ void main() {
     test('mapeia email not confirmed corretamente', () {
       const error = AuthException('Email not confirmed');
       final msg = AuthErrorMapper.map(error);
-      expect(msg, 'Seu email ainda não foi confirmado. Verifique sua caixa de entrada.');
+      expect(
+        msg,
+        'Seu email ainda não foi confirmado. Verifique sua caixa de entrada.',
+      );
     });
 
     test('mapeia rate limit corretamente', () {
       const error = AuthException('rate limit exceeded');
       final msg = AuthErrorMapper.map(error);
-      expect(msg, 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.');
+      expect(
+        msg,
+        'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.',
+      );
     });
 
     test('retorna defaultMessage customizada para erro desconhecido', () {

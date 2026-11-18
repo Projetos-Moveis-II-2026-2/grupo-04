@@ -1,4 +1,6 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/database/app_database.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/repositories/i_exercise_repository.dart';
@@ -47,7 +49,7 @@ class ExerciseRepositoryImpl implements IExerciseRepository {
       await _localDataSource.insertExercises(companions);
     } catch (e) {
       // In a real app, handle error and log
-      print('Erro ao sincronizar exercícios: $e');
+      debugPrint('Erro ao sincronizar exercícios: $e');
     }
   }
 }

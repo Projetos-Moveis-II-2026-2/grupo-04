@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olimpus/features/auth/domain/entities/app_user.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
+import 'package:olimpus/features/progress/domain/entities/exercise_load_point.dart';
 import 'package:olimpus/features/progress/domain/entities/monthly_workout_summary.dart';
 import 'package:olimpus/features/progress/domain/entities/streak.dart';
+import 'package:olimpus/features/progress/domain/entities/user_exercise_summary.dart';
 import 'package:olimpus/features/progress/domain/repositories/i_progress_repository.dart';
 import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
 import 'package:olimpus/features/progress/presentation/widgets/streak_card.dart';
@@ -45,6 +47,25 @@ class _FakeProgressRepository implements IProgressRepository {
     lastWaterGoalMl = dailyGoalMl;
     return Stream.value(waterGoalDays);
   }
+
+  @override
+  Stream<List<UserExerciseSummary>> watchUserExercisesWithLogs(String userId) =>
+      Stream.value(const []);
+
+  @override
+  Stream<List<ExerciseLoadPoint>> watchExerciseLoadProgression({
+    required String userId,
+    required String exerciseId,
+  }) => Stream.value(const []);
+
+  @override
+  Future<void> seedDemoData(String userId) async {}
+
+  @override
+  Future<void> clearDemoData(String userId) async {}
+
+  @override
+  Stream<bool> watchHasDemoData(String userId) => Stream.value(false);
 }
 
 class _FakeDailyWaterGoalNotifier extends DailyWaterGoalNotifier {

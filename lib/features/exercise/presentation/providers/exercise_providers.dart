@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/providers.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/repositories/i_exercise_repository.dart';
@@ -24,7 +25,9 @@ class SearchQueryNotifier extends Notifier<String> {
   }
 }
 
-final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
+  SearchQueryNotifier.new,
+);
 
 class SelectedMuscleGroupNotifier extends Notifier<String?> {
   @override
@@ -35,7 +38,10 @@ class SelectedMuscleGroupNotifier extends Notifier<String?> {
   }
 }
 
-final selectedMuscleGroupProvider = NotifierProvider<SelectedMuscleGroupNotifier, String?>(SelectedMuscleGroupNotifier.new);
+final selectedMuscleGroupProvider =
+    NotifierProvider<SelectedMuscleGroupNotifier, String?>(
+      SelectedMuscleGroupNotifier.new,
+    );
 
 // Lista base (reativa ao banco de dados local)
 final baseExercisesStreamProvider = StreamProvider<List<Exercise>>((ref) {
@@ -66,19 +72,24 @@ final filteredExercisesProvider = Provider<AsyncValue<List<Exercise>>>((ref) {
   return asyncBaseList.whenData((list) {
     return list.where((exercise) {
       final matchesQuery = exercise.name.toLowerCase().contains(query);
-      
+
       bool matchesMuscle = true;
       if (selectedGroup != null) {
         final englishKeys = muscleGroupTranslation[selectedGroup] ?? [];
-        
+
         // Verifica se algum músculo primário ou secundário bate com as chaves em inglês
-        final hasPrimary = exercise.primaryMuscleList.any((m) => englishKeys.contains(m.toLowerCase()));
-        final hasSecondary = exercise.secondaryMuscles != null && 
-            englishKeys.any((key) => exercise.secondaryMuscles!.toLowerCase().contains(key));
-            
+        final hasPrimary = exercise.primaryMuscleList.any(
+          (m) => englishKeys.contains(m.toLowerCase()),
+        );
+        final hasSecondary =
+            exercise.secondaryMuscles != null &&
+            englishKeys.any(
+              (key) => exercise.secondaryMuscles!.toLowerCase().contains(key),
+            );
+
         matchesMuscle = hasPrimary || hasSecondary;
       }
-      
+
       return matchesQuery && matchesMuscle;
     }).toList();
   });
