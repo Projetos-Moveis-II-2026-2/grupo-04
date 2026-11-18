@@ -16,6 +16,7 @@ import '../features/exercise/presentation/pages/exercise_details_page.dart';
 import '../features/exercise/presentation/pages/exercise_library_page.dart';
 import '../features/progress/presentation/pages/progress_page.dart';
 import '../features/water/presentation/pages/water_history_page.dart';
+import '../features/workout/presentation/pages/free_workout_page.dart';
 import '../features/workout/presentation/pages/workout_list_page.dart';
 import 'scaffold_with_nav_bar.dart';
 
@@ -139,6 +140,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/workout',
                 builder: (context, state) => const WorkoutListPage(),
                 routes: [
+                  GoRoute(
+                    path: 'free',
+                    builder: (context, state) => const FreeWorkoutPage(),
+                  ),
                   GoRoute(
                     path: ':id',
                     builder: (context, state) {
