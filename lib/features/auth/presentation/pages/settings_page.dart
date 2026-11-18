@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:olimpus/core/providers/action_feedback_provider.dart';
 
 import '../../../../core/providers.dart';
 import 'package:olimpus/features/water/presentation/providers/water_providers.dart';
@@ -20,6 +21,7 @@ class SettingsPage extends ConsumerWidget {
         (themeMode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final user = ref.watch(currentUserProvider);
+    final feedback = ref.watch(actionFeedbackProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -81,6 +83,19 @@ class SettingsPage extends ConsumerWidget {
               value: isDark,
               onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
             ),
+          ),
+          const Divider(),
+          SwitchListTile(
+            secondary: const Icon(Icons.vibration),
+            title: const Text('Vibração'),
+            value: feedback.vibration,
+            onChanged: ref.read(actionFeedbackProvider.notifier).setVibration,
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.volume_up_outlined),
+            title: const Text('Som de feedback'),
+            value: feedback.sound,
+            onChanged: ref.read(actionFeedbackProvider.notifier).setSound,
           ),
           const Divider(),
           ListTile(
