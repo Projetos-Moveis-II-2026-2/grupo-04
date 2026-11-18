@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers.dart';
+import '../../../workout/presentation/pages/templates_page.dart';
 import '../providers/auth_notifier.dart';
 import '../providers/auth_providers.dart';
 
@@ -16,6 +18,7 @@ class HomePage extends ConsumerWidget {
         (themeMode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final user = ref.watch(currentUserProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -33,24 +36,44 @@ class HomePage extends ConsumerWidget {
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Olimpus', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            if (user != null)
-              Text('Logado como: ${user.email}'),
-            const SizedBox(height: 24),
-            Text('Modo de tema atual: ${themeMode.name}'),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-              label: const Text('Alternar Tema'),
-              onPressed: () => ref.read(themeProvider.notifier).toggle(),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Minhas Fichas de Treino',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (user != null)
+                        Text(
+                          'Logado como: ${user.email}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const Expanded(child: TemplatesListView()),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push('/templates/new'),
+        icon: const Icon(Icons.add),
+        label: const Text('Nova Ficha'),
       ),
     );
   }

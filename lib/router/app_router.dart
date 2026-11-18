@@ -8,6 +8,9 @@ import '../features/auth/presentation/pages/register_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/reset_password_page.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
+import '../features/workout/domain/entities/workout_template_entity.dart';
+import '../features/workout/presentation/pages/template_form_page.dart';
+import '../features/workout/presentation/pages/templates_page.dart';
 
 /// Configuração temporária de rotas para validar o fluxo de Auth.
 /// A infraestrutura global de redirecionamento (guardas avançadas)
@@ -63,6 +66,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reset-password',
         builder: (context, state) => const ResetPasswordPage(),
+      ),
+      GoRoute(
+        path: '/templates',
+        builder: (context, state) => const TemplatesPage(),
+      ),
+      GoRoute(
+        path: '/templates/new',
+        builder: (context, state) => const TemplateFormPage(),
+      ),
+      GoRoute(
+        path: '/templates/:id/edit',
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          final extra = state.extra;
+          return TemplateFormPage(
+            templateId: id,
+            initialTemplate: extra is WorkoutTemplateEntity ? extra : null,
+          );
+        },
       ),
     ],
   );

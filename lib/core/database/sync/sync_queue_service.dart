@@ -111,6 +111,7 @@ class SyncQueueService {
       'exercise_sets' => _db.exerciseSets.actualTableName,
       'workout_sessions' => _db.workoutSessions.actualTableName,
       'workout_templates' => _db.workoutTemplates.actualTableName,
+      'template_exercises' => _db.templateExercises.actualTableName,
       'exercise_library' => _db.exerciseLibraryTable.actualTableName,
       'water_intake' => _db.waterIntake.actualTableName,
       _ => throw ArgumentError.value(

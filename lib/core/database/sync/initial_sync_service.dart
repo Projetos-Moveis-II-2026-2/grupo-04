@@ -9,9 +9,11 @@ class PullSnapshot {
     required this.workoutSessions,
     required this.exerciseSets,
     required this.waterIntake,
+    this.templateExercises = const [],
   });
 
   final List<Map<String, dynamic>> workoutTemplates;
+  final List<Map<String, dynamic>> templateExercises;
   final List<Map<String, dynamic>> workoutSessions;
   final List<Map<String, dynamic>> exerciseSets;
   final List<Map<String, dynamic>> waterIntake;
@@ -57,11 +59,56 @@ class InitialSyncService {
     final snapshot = await dataSource.fetchAll();
     await _db.transaction(() async {
       await _applyTemplates(snapshot.workoutTemplates);
+      await _applyTemplateExercises(snapshot.templateExercises);
       await _applySessions(snapshot.workoutSessions);
       await _applySets(snapshot.exerciseSets);
       await _applyWater(snapshot.waterIntake);
     });
     await stateStore.markPulled();
+  }
+
+  Future<void> _applyTemplateExercises(List<Map<String, dynamic>> rows) async {
+    for (final row in rows) {
+      final remoteId = row['id'] as String;
+      final remoteUpdated = row['updated_at'] != null
+          ? DateTime.parse(row['updated_at'] as String)
+          : DateTime.now().toUtc();
+      final existing = await (_db.select(
+        _db.templateExercises,
+      )..where((t) => t.remoteId.equals(remoteId))).getSingleOrNull();
+
+      if (existing == null) {
+        await _db
+            .into(_db.templateExercises)
+            .insert(
+              TemplateExercisesCompanion.insert(
+                id: remoteId,
+                remoteId: Value(remoteId),
+                templateId: row['template_id'] as String,
+                exerciseId: row['exercise_id'] as String,
+                sortOrder: Value((row['sort_order'] as num?)?.toInt() ?? 0),
+                targetSets: Value((row['target_sets'] as num?)?.toInt() ?? 3),
+                targetReps: Value((row['target_reps'] as num?)?.toInt()),
+                synced: const Value(true),
+                updatedAt: remoteUpdated,
+              ),
+            );
+      } else {
+        await (_db.update(
+          _db.templateExercises,
+        )..where((t) => t.remoteId.equals(remoteId))).write(
+          TemplateExercisesCompanion(
+            templateId: Value(row['template_id'] as String),
+            exerciseId: Value(row['exercise_id'] as String),
+            sortOrder: Value((row['sort_order'] as num?)?.toInt() ?? 0),
+            targetSets: Value((row['target_sets'] as num?)?.toInt() ?? 3),
+            targetReps: Value((row['target_reps'] as num?)?.toInt()),
+            synced: const Value(true),
+            updatedAt: Value(remoteUpdated),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _applyTemplates(List<Map<String, dynamic>> rows) async {
