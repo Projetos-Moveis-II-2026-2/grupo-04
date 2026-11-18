@@ -41,10 +41,20 @@ class Exercise extends Equatable {
     return primaryMuscles!.split(',').map((e) => e.trim()).toList();
   }
 
+  /// Helper to get all trimmed non-empty image URLs from comma-separated string
+  List<String> get imageUrlList {
+    if (imageUrls == null || imageUrls!.isEmpty) return const [];
+    return imageUrls!
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+  }
+
   /// Helper to get the first image URL if available
   String? get firstImageUrl {
-    if (imageUrls == null || imageUrls!.isEmpty) return null;
-    return imageUrls!.split(',').first.trim();
+    final urls = imageUrlList;
+    return urls.isEmpty ? null : urls.first;
   }
 
   @override

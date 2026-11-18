@@ -36,6 +36,39 @@ void main() {
     });
   });
 
+  group('imageUrlList', () {
+    test('should split, trim and return two frames in order', () {
+      expect(buildExercise().imageUrlList, [
+        'https://img/1.jpg',
+        'https://img/2.jpg',
+      ]);
+    });
+
+    test('should return single-element list when only one frame exists', () {
+      expect(buildExercise(imageUrls: 'https://img/0.jpg').imageUrlList, [
+        'https://img/0.jpg',
+      ]);
+    });
+
+    test('should return empty list when imageUrls is null', () {
+      expect(buildExercise(imageUrls: null).imageUrlList, isEmpty);
+    });
+
+    test('should return empty list when imageUrls is empty', () {
+      expect(buildExercise(imageUrls: '').imageUrlList, isEmpty);
+    });
+
+    test('should trim whitespace and discard empty entries', () {
+      expect(
+        buildExercise(
+          imageUrls: '  https://img/0.jpg , ,  https://img/1.jpg ,   ',
+        ).imageUrlList,
+        ['https://img/0.jpg', 'https://img/1.jpg'],
+      );
+      expect(buildExercise(imageUrls: '   ,  , ').imageUrlList, isEmpty);
+    });
+  });
+
   group('firstImageUrl', () {
     test('should return the first trimmed image url', () {
       expect(buildExercise().firstImageUrl, 'https://img/1.jpg');
@@ -47,6 +80,10 @@ void main() {
 
     test('should return null when imageUrls is empty', () {
       expect(buildExercise(imageUrls: '').firstImageUrl, isNull);
+    });
+
+    test('should return null when imageUrls has only spaces/commas', () {
+      expect(buildExercise(imageUrls: ' ,  ').firstImageUrl, isNull);
     });
   });
 
