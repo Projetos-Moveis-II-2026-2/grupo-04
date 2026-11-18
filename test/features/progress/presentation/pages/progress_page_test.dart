@@ -7,6 +7,7 @@ import 'package:olimpus/features/auth/domain/entities/app_user.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:olimpus/features/progress/domain/entities/exercise_load_point.dart';
 import 'package:olimpus/features/progress/domain/entities/monthly_workout_summary.dart';
+import 'package:olimpus/features/progress/domain/entities/streak.dart';
 import 'package:olimpus/features/progress/domain/entities/user_exercise_summary.dart';
 import 'package:olimpus/features/progress/presentation/pages/progress_page.dart';
 import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
@@ -44,6 +45,12 @@ void main() {
               currentUserProvider.overrideWithValue(testUser),
               monthlyWorkoutSummaryProvider.overrideWith(
                 (ref) => Stream.value(_emptyMonth()),
+              ),
+              workoutStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
+              waterStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
               ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(const []),
@@ -110,6 +117,12 @@ void main() {
               monthlyWorkoutSummaryProvider.overrideWith(
                 (ref) => Stream.value(_emptyMonth()),
               ),
+              workoutStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
+              waterStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(exercises),
               ),
@@ -166,6 +179,12 @@ void main() {
               monthlyWorkoutSummaryProvider.overrideWith(
                 (ref) => Stream.value(_emptyMonth()),
               ),
+              workoutStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
+              waterStreakProvider.overrideWith(
+                (ref) => Stream.value(const Streak(current: 0, best: 0)),
+              ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(exercises),
               ),
@@ -201,6 +220,12 @@ void main() {
             currentUserProvider.overrideWithValue(testUser),
             monthlyWorkoutSummaryProvider.overrideWith(
               (ref) => Stream.value(_emptyMonth()),
+            ),
+            workoutStreakProvider.overrideWith(
+              (ref) => Stream.value(const Streak(current: 0, best: 0)),
+            ),
+            waterStreakProvider.overrideWith(
+              (ref) => Stream.value(const Streak(current: 0, best: 0)),
             ),
             userExercisesWithProgressProvider.overrideWith(
               (ref) => Stream.error(Exception('Erro ao carregar histórico')),

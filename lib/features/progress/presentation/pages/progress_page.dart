@@ -12,10 +12,12 @@ import '../providers/progress_providers.dart';
 import '../widgets/exercise_load_chart.dart';
 import '../widgets/exercise_selector.dart';
 import '../widgets/monthly_calendar_section.dart';
+import '../widgets/streak_section.dart';
 
 /// Página principal da aba de Progresso e Evolução de Carga.
 ///
-/// Apresenta o calendário mensal de treinos concluídos e, reativamente,
+/// Apresenta os streaks de treino e hidratação, o calendário mensal de
+/// treinos concluídos e, reativamente,
 /// o histórico de cargas máximas por exercício,
 /// respeitando tema Material 3, ciclo de vida seguro (Riverpod) e estados
 /// de carregamento, erro, vazio e exibição gráfica.
@@ -166,6 +168,8 @@ class _EmptyProgressView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(width: double.infinity, child: StreakSection()),
+            const SizedBox(height: 16),
             const SizedBox(
               width: double.infinity,
               child: MonthlyCalendarSection(),
@@ -302,6 +306,8 @@ class _ProgressDataView extends ConsumerWidget {
             ),
           ],
 
+          const StreakSection(),
+          const SizedBox(height: 16),
           const MonthlyCalendarSection(),
           const SizedBox(height: 24),
 

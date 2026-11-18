@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:olimpus/features/progress/domain/entities/streak.dart';
+import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
+import 'package:olimpus/features/progress/presentation/widgets/streak_card.dart';
 
 import '../providers/auth_providers.dart';
 
@@ -82,6 +85,27 @@ class HomePage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
+            // Resumo compacto de streaks (treino e hidratação)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Suas sequências',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => context.go('/progress'),
+                  child: const Text('Ver evolução'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const _HomeStreakSummary(),
+            const SizedBox(height: 24),
+
             // Seção de Atalhos Rápidos
             Text(
               'Acesso Rápido',
@@ -133,6 +157,49 @@ class HomePage extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Resumo compacto dos streaks de treino e hidratação exibido na Home.
+class _HomeStreakSummary extends ConsumerWidget {
+  const _HomeStreakSummary();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final workoutStreak = ref.watch(workoutStreakProvider);
+    final waterStreak = ref.watch(waterStreakProvider);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _StreakAsync(
+            streakAsync: workoutStreak,
+            type: StreakType.workout,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _StreakAsync(streakAsync: waterStreak, type: StreakType.water),
+        ),
+      ],
+    );
+  }
+}
+
+class _StreakAsync extends StatelessWidget {
+  const _StreakAsync({required this.streakAsync, required this.type});
+
+  final AsyncValue<Streak> streakAsync;
+  final StreakType type;
+
+  @override
+  Widget build(BuildContext context) {
+    return streakAsync.when(
+      data: (streak) => StreakCard(streak: streak, type: type, compact: true),
+      loading: () => const Card(elevation: 0, child: SizedBox(height: 58)),
+      error: (_, _) => const SizedBox(height: 58),
     );
   }
 }
