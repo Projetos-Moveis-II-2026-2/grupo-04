@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SubstituteSuggestion {
   const SubstituteSuggestion({
     required this.id,
+    this.externalId,
     required this.name,
     required this.equipment,
     required this.imageUrl,
@@ -14,6 +15,7 @@ class SubstituteSuggestion {
   factory SubstituteSuggestion.fromRpcRow(Map<String, dynamic> row) {
     return SubstituteSuggestion(
       id: row['id'] as String,
+      externalId: row['external_id'] as String?,
       name: row['name'] as String,
       equipment: row['equipment'] as String?,
       imageUrl: row['image_url'] as String?,
@@ -24,6 +26,7 @@ class SubstituteSuggestion {
     return SubstituteSuggestion(
       // fallback LLM sem match no catálogo: sem id selecionável
       id: json['matched_id'] as String? ?? '',
+      externalId: json['matched_external_id'] as String?,
       name: json['matched_name'] as String? ?? json['name'] as String,
       equipment: json['equipment'] as String?,
       imageUrl: json['image_url'] as String?,
@@ -32,10 +35,22 @@ class SubstituteSuggestion {
   }
 
   final String id;
+  final String? externalId;
   final String name;
   final String? equipment;
   final String? imageUrl;
   final String? reason;
+
+  SubstituteSuggestion copyWith({String? name}) {
+    return SubstituteSuggestion(
+      id: id,
+      externalId: externalId,
+      name: name ?? this.name,
+      equipment: equipment,
+      imageUrl: imageUrl,
+      reason: reason,
+    );
+  }
 }
 
 class SubstituteRateLimited implements Exception {

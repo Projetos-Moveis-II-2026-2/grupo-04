@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/exercise.dart';
 import '../providers/exercise_providers.dart';
+import '../utils/exercise_labels.dart';
 
 class ExerciseDetailsPage extends ConsumerWidget {
   final Exercise? exercise;
@@ -135,8 +136,51 @@ class ExerciseDetailsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              (currentExercise.primaryMuscles ?? 'N/A').toUpperCase(),
+              muscleListLabel(currentExercise.primaryMuscles),
               style: Theme.of(context).textTheme.bodyLarge,
+            ),
+
+            if (currentExercise.secondaryMuscles != null &&
+                currentExercise.secondaryMuscles!.trim().isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Músculos Secundários',
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                muscleListLabel(currentExercise.secondaryMuscles),
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _DetailChip(
+                  label: 'Nível',
+                  value: levelLabel(currentExercise.level),
+                ),
+                _DetailChip(
+                  label: 'Equipamento',
+                  value: equipmentLabel(currentExercise.equipment),
+                ),
+                _DetailChip(
+                  label: 'Categoria',
+                  value: categoryLabel(currentExercise.category),
+                ),
+                _DetailChip(
+                  label: 'Mecânica',
+                  value: mechanicLabel(currentExercise.mechanic),
+                ),
+                _DetailChip(
+                  label: 'Força',
+                  value: forceLabel(currentExercise.force),
+                ),
+              ],
             ),
 
             const SizedBox(height: 24),
@@ -148,14 +192,31 @@ class ExerciseDetailsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              currentExercise.instructions ??
-                  'Nenhuma instrução disponível para este exercício.',
+              (currentExercise.instructions == null ||
+                      currentExercise.instructions!.trim().isEmpty)
+                  ? 'Nenhuma instrução disponível para este exercício.'
+                  : currentExercise.instructions!,
               style: Theme.of(context).textTheme.bodyLarge
                   ?.copyWith(height: 1.5),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DetailChip extends StatelessWidget {
+  const _DetailChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text('$label: $value'),
+      visualDensity: VisualDensity.compact,
     );
   }
 }
