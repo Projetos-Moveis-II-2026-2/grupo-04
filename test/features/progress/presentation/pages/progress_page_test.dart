@@ -6,11 +6,22 @@ import 'package:olimpus/core/widgets/app_error_widget.dart';
 import 'package:olimpus/features/auth/domain/entities/app_user.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:olimpus/features/progress/domain/entities/exercise_load_point.dart';
+import 'package:olimpus/features/progress/domain/entities/monthly_workout_summary.dart';
 import 'package:olimpus/features/progress/domain/entities/user_exercise_summary.dart';
 import 'package:olimpus/features/progress/presentation/pages/progress_page.dart';
 import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
 import 'package:olimpus/features/progress/presentation/widgets/exercise_load_chart.dart';
 import 'package:olimpus/features/progress/presentation/widgets/exercise_selector.dart';
+
+MonthlyWorkoutSummary _emptyMonth() {
+  final now = DateTime.now();
+  return MonthlyWorkoutSummary(
+    month: DateTime(now.year, now.month),
+    trainedDays: const {},
+    workoutCount: 0,
+    totalVolumeKg: 0,
+  );
+}
 
 void main() {
   const testUser = AppUser(
@@ -31,6 +42,9 @@ void main() {
           ProviderScope(
             overrides: [
               currentUserProvider.overrideWithValue(testUser),
+              monthlyWorkoutSummaryProvider.overrideWith(
+                (ref) => Stream.value(_emptyMonth()),
+              ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(const []),
               ),
@@ -93,6 +107,9 @@ void main() {
           ProviderScope(
             overrides: [
               currentUserProvider.overrideWithValue(testUser),
+              monthlyWorkoutSummaryProvider.overrideWith(
+                (ref) => Stream.value(_emptyMonth()),
+              ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(exercises),
               ),
@@ -146,6 +163,9 @@ void main() {
           ProviderScope(
             overrides: [
               currentUserProvider.overrideWithValue(testUser),
+              monthlyWorkoutSummaryProvider.overrideWith(
+                (ref) => Stream.value(_emptyMonth()),
+              ),
               userExercisesWithProgressProvider.overrideWith(
                 (ref) => Stream.value(exercises),
               ),
@@ -179,6 +199,9 @@ void main() {
         ProviderScope(
           overrides: [
             currentUserProvider.overrideWithValue(testUser),
+            monthlyWorkoutSummaryProvider.overrideWith(
+              (ref) => Stream.value(_emptyMonth()),
+            ),
             userExercisesWithProgressProvider.overrideWith(
               (ref) => Stream.error(Exception('Erro ao carregar histórico')),
             ),

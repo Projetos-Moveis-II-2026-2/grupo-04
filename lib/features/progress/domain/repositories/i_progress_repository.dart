@@ -1,4 +1,5 @@
 import '../entities/exercise_load_point.dart';
+import '../entities/monthly_workout_summary.dart';
 import '../entities/user_exercise_summary.dart';
 
 /// Contrato para o repositório de progresso e evolução de cargas.
@@ -27,4 +28,11 @@ abstract interface class IProgressRepository {
 
   /// Observa se o usuário possui dados de demonstração salvos localmente.
   Stream<bool> watchHasDemoData(String userId);
+
+  /// Observa o resumo dos treinos concluídos no [month] (fuso local)
+  /// para o usuário informado.
+  Stream<MonthlyWorkoutSummary> watchMonthlySummary(
+    String userId,
+    DateTime month,
+  );
 }

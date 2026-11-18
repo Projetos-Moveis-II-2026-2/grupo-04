@@ -11,10 +11,12 @@ import '../../domain/entities/user_exercise_summary.dart';
 import '../providers/progress_providers.dart';
 import '../widgets/exercise_load_chart.dart';
 import '../widgets/exercise_selector.dart';
+import '../widgets/monthly_calendar_section.dart';
 
 /// Página principal da aba de Progresso e Evolução de Carga.
 ///
-/// Apresenta reativamente o histórico de cargas máximas por exercício,
+/// Apresenta o calendário mensal de treinos concluídos e, reativamente,
+/// o histórico de cargas máximas por exercício,
 /// respeitando tema Material 3, ciclo de vida seguro (Riverpod) e estados
 /// de carregamento, erro, vazio e exibição gráfica.
 class ProgressPage extends ConsumerWidget {
@@ -164,6 +166,11 @@ class _EmptyProgressView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(
+              width: double.infinity,
+              child: MonthlyCalendarSection(),
+            ),
+            const SizedBox(height: 32),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -294,6 +301,9 @@ class _ProgressDataView extends ConsumerWidget {
               ),
             ),
           ],
+
+          const MonthlyCalendarSection(),
+          const SizedBox(height: 24),
 
           // Seletor de Exercício
           Text(
