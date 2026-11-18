@@ -6,6 +6,9 @@ import '../../domain/repositories/i_exercise_repository.dart';
 import '../../data/datasources/exercise_local_datasource.dart';
 import '../../data/datasources/exercise_remote_datasource_fake.dart';
 import '../../data/repositories/exercise_repository_impl.dart';
+import '../utils/exercise_labels.dart';
+
+export '../utils/exercise_labels.dart' show muscleGroupTranslation;
 
 // Repositório
 final exerciseRepositoryProvider = Provider<IExerciseRepository>((ref) {
@@ -48,20 +51,6 @@ final baseExercisesStreamProvider = StreamProvider<List<Exercise>>((ref) {
   final repo = ref.watch(exerciseRepositoryProvider);
   return repo.watchExercises();
 });
-
-// Mapa de tradução para agrupamento
-const muscleGroupTranslation = {
-  'Peito': ['chest'],
-  'Costas': ['lats', 'middle back', 'lower back'],
-  'Ombros': ['shoulders', 'traps'],
-  'Pernas': ['quadriceps', 'hamstrings', 'glutes', 'adductors', 'abductors'],
-  'Panturrilhas': ['calves'],
-  'Bíceps': ['biceps'],
-  'Tríceps': ['triceps'],
-  'Abdômen': ['abdominals'],
-  'Antebraços': ['forearms'],
-  'Pescoço': ['neck'],
-};
 
 // Provider filtrado (debounced) - combina a lista base com os filtros
 final filteredExercisesProvider = Provider<AsyncValue<List<Exercise>>>((ref) {
