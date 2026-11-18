@@ -9,7 +9,7 @@ mesmo ref são canceladas automaticamente (`concurrency`).
 1. `flutter pub get` — resolve as dependências.
 2. `dart format --output=none --set-exit-if-changed lib test` — garante que
    `lib/` e `test/` estão formatados.
-3. `flutter analyze --fatal-infos` — análise estática sem warnings ou infos.
+3. `dart analyze --fatal-infos` — análise estática sem warnings ou infos (inclui o plugin `riverpod_lint`, que o `flutter analyze` não executa de forma consistente).
 4. `flutter test --coverage --exclude-tags integration` — testes unitários e de
    widget, ignorando testes marcados com a tag `integration`.
 5. Publica `coverage/lcov.info` como artifact e escreve um resumo da cobertura
@@ -22,7 +22,7 @@ Antes de abrir um PR, rode os mesmos comandos do CI:
 ```bash
 flutter pub get
 dart format --output=none --set-exit-if-changed lib test
-flutter analyze --fatal-infos
+dart analyze --fatal-infos
 flutter test --coverage --exclude-tags integration
 ```
 

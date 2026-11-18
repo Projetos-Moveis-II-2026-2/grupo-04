@@ -1,3 +1,6 @@
+// Fake de teste: os campos públicos registram as chamadas para as asserções.
+// ignore_for_file: riverpod_lint/avoid_public_notifier_properties
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
