@@ -5,10 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:olimpus/core/database/sync/sync_providers.dart';
+import 'package:olimpus/core/database/sync/sync_queue_service.dart';
 import 'package:olimpus/features/auth/domain/entities/app_user.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:olimpus/features/water/domain/entities/daily_water_summary.dart';
 import 'package:olimpus/features/water/domain/entities/water_intake_record.dart';
+import 'package:olimpus/features/water/domain/repositories/i_water_repository.dart';
 import 'package:olimpus/features/water/presentation/pages/water_history_page.dart';
 import 'package:olimpus/features/water/presentation/providers/water_providers.dart';
 import 'package:olimpus/features/water/presentation/widgets/daily_water_total_card.dart';
@@ -17,6 +21,17 @@ import 'package:olimpus/features/water/presentation/widgets/weekly_water_chart.d
 
 import 'package:olimpus/core/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/pump_app.dart';
+
+class _MockWaterRepository extends Mock implements IWaterRepository {}
+
+class _MockSyncQueueService extends Mock implements SyncQueueService {}
+
+class _FixedWaterGoalNotifier extends DailyWaterGoalNotifier {
+  @override
+  int build() => 2000;
+}
 
 void main() {
   late SharedPreferences prefs;
@@ -331,5 +346,190 @@ void main() {
       expect(find.text('500 ml'), findsOneWidget);
       expect(find.text('13:30'), findsOneWidget);
     });
+  });
+
+  group('WaterHistoryPage Estados Extras', () {
+    const testUser = AppUser(
+      id: 'u-extra',
+      email: 'agua@olimpus.com',
+      emailConfirmedAt: null,
+    );
+
+    testWidgets('exibe indicadores de carregamento no estado loading', (
+      tester,
+    ) async {
+      final totalCtrl = StreamController<int>();
+      final entriesCtrl = StreamController<List<WaterIntakeRecord>>();
+      final weeklyCtrl = StreamController<List<DailyWaterSummary>>();
+      addTearDown(() async {
+        await totalCtrl.close();
+        await entriesCtrl.close();
+        await weeklyCtrl.close();
+      });
+
+      await pumpApp(
+        tester,
+        child: const WaterHistoryPage(),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentUserProvider.overrideWithValue(testUser),
+          dailyWaterGoalProvider.overrideWith(_FixedWaterGoalNotifier.new),
+          todayWaterTotalProvider.overrideWith((ref) => totalCtrl.stream),
+          todayWaterEntriesProvider.overrideWith((ref) => entriesCtrl.stream),
+          weeklyWaterSummaryProvider.overrideWith((ref) => weeklyCtrl.stream),
+        ],
+      );
+      await tester.pump();
+
+      expect(find.text('Hidratação'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
+    });
+
+    testWidgets('exibe mensagens de erro quando streams falham', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        child: const WaterHistoryPage(),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentUserProvider.overrideWithValue(testUser),
+          dailyWaterGoalProvider.overrideWith(_FixedWaterGoalNotifier.new),
+          todayWaterTotalProvider.overrideWith(
+            (ref) => Stream.error('falha total'),
+          ),
+          weeklyWaterSummaryProvider.overrideWith(
+            (ref) => Stream.error('falha semanal'),
+          ),
+          todayWaterEntriesProvider.overrideWith(
+            (ref) => Stream.error('falha registros'),
+          ),
+        ],
+      );
+      await tester.pumpAndSettleBounded();
+
+      expect(find.text('Erro ao carregar total: falha total'), findsOneWidget);
+      expect(
+        find.text('Erro ao carregar gráfico semanal: falha semanal'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Erro ao carregar registros: falha registros'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('exibe estado vazio quando não há registros de água no dia', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        child: const WaterHistoryPage(),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentUserProvider.overrideWithValue(testUser),
+          dailyWaterGoalProvider.overrideWith(_FixedWaterGoalNotifier.new),
+          todayWaterTotalProvider.overrideWith((ref) => Stream.value(0)),
+          todayWaterEntriesProvider.overrideWith(
+            (ref) => Stream.value(const []),
+          ),
+          weeklyWaterSummaryProvider.overrideWith(
+            (ref) => Stream.value(const []),
+          ),
+        ],
+      );
+      await tester.pumpAndSettleBounded();
+
+      expect(find.textContaining('0 ml'), findsWidgets);
+      expect(find.text('0%'), findsOneWidget);
+      expect(find.text('Nenhum registro hoje'), findsOneWidget);
+      expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
+    });
+
+    testWidgets(
+      'adição rápida +250 ml chama WaterRepository e exibe SnackBar',
+      (tester) async {
+        final mockRepo = _MockWaterRepository();
+        final mockSyncQueue = _MockSyncQueueService();
+        final entry = WaterIntakeRecord(
+          id: 'w-10',
+          userId: 'u-extra',
+          amountMl: 250,
+          recordedAt: DateTime(2026, 9, 16, 10, 0),
+          date: '2026-09-16',
+        );
+        when(() => mockRepo.addWaterIntake(userId: 'u-extra', amountMl: 250))
+            .thenAnswer((_) async => entry);
+        when(() => mockSyncQueue.processQueue()).thenAnswer((_) async {});
+
+        await pumpApp(
+          tester,
+          child: const WaterHistoryPage(),
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            currentUserProvider.overrideWithValue(testUser),
+            dailyWaterGoalProvider.overrideWith(_FixedWaterGoalNotifier.new),
+            waterRepositoryProvider.overrideWithValue(mockRepo),
+            syncQueueServiceProvider.overrideWithValue(mockSyncQueue),
+            todayWaterTotalProvider.overrideWith((ref) => Stream.value(0)),
+            todayWaterEntriesProvider.overrideWith(
+              (ref) => Stream.value(const []),
+            ),
+            weeklyWaterSummaryProvider.overrideWith(
+              (ref) => Stream.value(const []),
+            ),
+          ],
+        );
+        await tester.pumpAndSettleBounded();
+
+        await tester.tap(find.text('+250 ml'));
+        await tester.pumpAndSettleBounded();
+
+        verify(() => mockRepo.addWaterIntake(userId: 'u-extra', amountMl: 250))
+            .called(1);
+        expect(find.text('+250 ml adicionados! 💧'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'remoção de registro chama deleteWaterIntake e exibe SnackBar',
+      (tester) async {
+        final mockRepo = _MockWaterRepository();
+        final entry = WaterIntakeRecord(
+          id: 'w-10',
+          userId: 'u-extra',
+          amountMl: 250,
+          recordedAt: DateTime(2026, 9, 16, 10, 0),
+          date: '2026-09-16',
+        );
+        when(() => mockRepo.deleteWaterIntake('w-10')).thenAnswer((_) async {});
+
+        await pumpApp(
+          tester,
+          child: const WaterHistoryPage(),
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            currentUserProvider.overrideWithValue(testUser),
+            dailyWaterGoalProvider.overrideWith(_FixedWaterGoalNotifier.new),
+            waterRepositoryProvider.overrideWithValue(mockRepo),
+            todayWaterTotalProvider.overrideWith((ref) => Stream.value(250)),
+            todayWaterEntriesProvider.overrideWith(
+              (ref) => Stream.value([entry]),
+            ),
+            weeklyWaterSummaryProvider.overrideWith(
+              (ref) => Stream.value(const []),
+            ),
+          ],
+        );
+        await tester.pumpAndSettleBounded();
+
+        await tester.ensureVisible(find.byTooltip('Remover registro'));
+        await tester.tap(find.byTooltip('Remover registro'));
+        await tester.pumpAndSettleBounded();
+
+        verify(() => mockRepo.deleteWaterIntake('w-10')).called(1);
+        expect(find.text('Registro removido'), findsOneWidget);
+      },
+    );
   });
 }
