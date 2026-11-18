@@ -72,9 +72,92 @@ void main() {
       expect(exercises, hasLength(876));
       expect(exercises.first.name, isNotEmpty);
     });
+
+    test('aplica overlay pt-BR e faz fallback ao original quando falta id', () {
+      final json = jsonEncode([
+        {
+          'id': 'bench-press',
+          'name': 'Bench Press',
+          'instructions': ['Lie down', 'Press bar'],
+        },
+        {
+          'id': 'squat',
+          'name': 'Barbell Squat',
+          'instructions': ['Stand under bar', 'Squat down'],
+        },
+      ]);
+
+      final overlay = jsonEncode({
+        'bench-press': {
+          'name': 'Supino Reto',
+          'instructions': ['Deite-se no banco', 'Empurre a barra'],
+        },
+      });
+
+      final result = parseExercisesFromJson(json, overlayJsonString: overlay);
+
+      expect(result, hasLength(2));
+      expect(result[0].name, 'Supino Reto');
+      expect(result[0].instructions, '• Deite-se no banco\n• Empurre a barra');
+      // Fallback para o texto original quando o id não está no overlay
+      expect(result[1].name, 'Barbell Squat');
+      expect(result[1].instructions, '• Stand under bar\n• Squat down');
+    });
+
+    test(
+      'parseExercisesWithOverlay aplica tradução real do catálogo completo',
+      () async {
+        final raw = await rootBundle.loadString('assets/data/exercises.json');
+        final overlay = await rootBundle.loadString(
+          'assets/data/exercises_pt.json',
+        );
+
+        final exercises = parseExercisesWithOverlay((
+          jsonString: raw,
+          overlayJsonString: overlay,
+        ));
+
+        expect(exercises, hasLength(876));
+        final sitUp = exercises.firstWhere((e) => e.id == '3_4_Sit-Up');
+        expect(sitUp.name, 'Abdominal 3/4');
+        expect(sitUp.instructions, contains('• Deite-se no chão'));
+      },
+    );
   });
 
   group('parseExercisesInChunks', () {
+    test('aplica overlay pt-BR e faz fallback ao original em chunks', () async {
+      final json = jsonEncode([
+        {
+          'id': 'ex-1',
+          'name': 'Original 1',
+          'instructions': ['Step 1'],
+        },
+        {
+          'id': 'ex-2',
+          'name': 'Original 2',
+          'instructions': ['Step 2'],
+        },
+      ]);
+      final overlay = jsonEncode({
+        'ex-1': {
+          'name': 'Traduzido 1',
+          'instructions': ['Passo 1'],
+        },
+      });
+
+      final result = await parseExercisesInChunks(
+        json,
+        overlayJsonString: overlay,
+        chunkSize: 1,
+      );
+
+      expect(result, hasLength(2));
+      expect(result[0].name, 'Traduzido 1');
+      expect(result[0].instructions, '• Passo 1');
+      expect(result[1].name, 'Original 2');
+      expect(result[1].instructions, '• Step 2');
+    });
     test(
       'processa em lotes cedendo entre chunks e mantém equivalência',
       () async {
