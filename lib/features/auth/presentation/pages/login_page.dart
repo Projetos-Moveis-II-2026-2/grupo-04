@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_notifier.dart';
+import '../providers/auth_providers.dart';
 import '../utils/auth_error_mapper.dart';
 import '../widgets/auth_text_field.dart';
 
@@ -46,9 +47,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         );
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
+      } else if (next is AsyncData && next.value != null) {
+        ref.read(sessionExpiredNoticeProvider.notifier).dismiss();
       }
     });
 
+    final sessionExpired = ref.watch(sessionExpiredNoticeProvider);
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState.isLoading;
 
@@ -63,6 +67,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (sessionExpired) ...[
+                  _SessionExpiredBanner(
+                    onDismiss: ref
+                        .read(sessionExpiredNoticeProvider.notifier)
+                        .dismiss,
+                  ),
+                  const SizedBox(height: 24),
+                ],
                 AuthTextField(
                   controller: _emailController,
                   label: 'Email',
@@ -99,6 +111,45 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Aviso exibido quando o usuário foi deslogado porque a sessão expirou
+/// (refresh token expirado ou revogado no servidor).
+class _SessionExpiredBanner extends StatelessWidget {
+  const _SessionExpiredBanner({required this.onDismiss});
+
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      key: const ValueKey('session-expired-banner'),
+      color: scheme.errorContainer,
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+        child: Row(
+          children: [
+            Icon(Icons.lock_clock, color: scheme.onErrorContainer),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Sua sessão expirou. Entre novamente para continuar.',
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              color: scheme.onErrorContainer,
+              tooltip: 'Fechar aviso',
+              onPressed: onDismiss,
+            ),
+          ],
         ),
       ),
     );

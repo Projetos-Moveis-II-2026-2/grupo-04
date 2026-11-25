@@ -61,3 +61,29 @@ final authStateProvider = StreamProvider<AppUser?>((ref) {
 final currentUserProvider = Provider<AppUser?>((ref) {
   return ref.watch(authStateProvider).value;
 });
+
+// ── Sessão expirada (#84) ──
+
+/// `true` enquanto o login deve avisar que a sessão expirou. O redirect para
+/// `/login` já acontece pelo [authStateProvider] (usuário vira `null`).
+final sessionExpiredNoticeProvider =
+    NotifierProvider<SessionExpiredNotice, bool>(SessionExpiredNotice.new);
+
+class SessionExpiredNotice extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void show() => state = true;
+
+  void dismiss() => state = false;
+}
+
+/// Liga o evento de expiração do repositório ao aviso. Observado pelo
+/// `MainApp` para ficar vivo durante todo o app.
+final sessionExpiryBindingProvider = Provider<void>((ref) {
+  final subscription = ref
+      .watch(authRepositoryProvider)
+      .sessionExpired()
+      .listen((_) => ref.read(sessionExpiredNoticeProvider.notifier).show());
+  ref.onDispose(subscription.cancel);
+});
