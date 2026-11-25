@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:olimpus/core/database/app_database.dart';
 import 'package:olimpus/core/utils/uuid.dart';
+import 'package:olimpus/features/workout/domain/entities/workout_session_entity.dart';
+import 'package:olimpus/features/workout/domain/usecases/compute_volume.dart';
 
 class FreeWorkoutRepository {
   FreeWorkoutRepository(this._db);
@@ -76,13 +78,43 @@ class FreeWorkoutRepository {
     });
   }
 
-  Future<void> finishWorkout(String userId) async {
-    final now = DateTime.now();
-    await (_db.update(
-      _db.workoutSessions,
-    )..where((_) => _activeWorkout(userId))).write(
-      WorkoutSessionsCompanion(completedAt: Value(now), updatedAt: Value(now)),
-    );
+  /// Conclui o treino livre gravando `completed_at` e `total_volume_kg`
+  /// (mesma regra da execução por ficha, para o histórico somar certo).
+  Future<void> finishWorkout(String userId) {
+    return _db.transaction(() async {
+      final now = DateTime.now();
+      final active = await (_db.select(
+        _db.workoutSessions,
+      )..where((_) => _activeWorkout(userId))).get();
+
+      for (final session in active) {
+        final sets = await (_db.select(
+          _db.exerciseSets,
+        )..where((s) => s.sessionId.equals(session.id))).get();
+        final volume = const ComputeVolume().ofSets(
+          sets.map(
+            (s) => SessionSet(
+              id: s.id,
+              sessionId: s.sessionId,
+              exerciseId: s.exerciseId,
+              setNumber: s.setNumber,
+              weightKg: s.weightKg,
+              reps: s.reps,
+              completed: s.completed,
+            ),
+          ),
+        );
+        await (_db.update(
+          _db.workoutSessions,
+        )..where((s) => s.id.equals(session.id))).write(
+          WorkoutSessionsCompanion(
+            completedAt: Value(now),
+            totalVolumeKg: Value(volume),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+    });
   }
 
   Expression<bool> _activeWorkout(String userId) {

@@ -3,6 +3,7 @@ import 'package:olimpus/core/database/app_database.dart';
 import 'package:olimpus/core/utils/uuid_v4.dart';
 import 'package:olimpus/features/workout/domain/entities/workout_session_entity.dart';
 import 'package:olimpus/features/workout/domain/entities/workout_template_entity.dart';
+import 'package:olimpus/features/workout/domain/usecases/compute_volume.dart';
 
 /// Persistência local (Drift) das sessões de execução de treino e suas séries.
 /// Toda escrita marca `synced = false`; o repositório enfileira o envio.
@@ -225,10 +226,7 @@ class WorkoutSessionLocalDataSource {
           .go();
 
       final done = await _setsOf(sessionId);
-      final volume = done.fold<double>(
-        0,
-        (sum, s) => sum + (s.weightKg ?? 0) * (s.reps ?? 0),
-      );
+      final volume = const ComputeVolume().ofSets(done.map(_toSessionSet));
       final now = DateTime.now();
       await (_db.update(
         _db.workoutSessions,
