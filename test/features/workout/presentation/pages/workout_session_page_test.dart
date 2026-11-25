@@ -140,6 +140,39 @@ void main() {
     expect(find.text('0/2 séries'), findsOneWidget);
   });
 
+  testWidgets('volume por exercício e total atualizam em tempo real (#40)', (
+    tester,
+  ) async {
+    String text(String key) =>
+        tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+
+    await pump(tester);
+    expect(text('volume-bench'), '0 kg');
+    expect(text('previous-volume-bench'), 'anterior: 600 kg');
+    expect(text('session-volume'), 'Volume total: 0 kg');
+
+    // Concluir série 1 (60×10) → 600 kg.
+    await tester.tap(find.byKey(const ValueKey('done-a')));
+    await tester.pumpAndSettle();
+    expect(text('volume-bench'), '600 kg');
+    expect(text('session-volume'), 'Volume total: 600 kg');
+
+    // +2,5 kg na série concluída → 62,5×10 = 625 kg.
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('weight-a')),
+        matching: find.byIcon(Icons.add),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(text('volume-bench'), '625 kg');
+
+    // Concluir série 2 (60×10) → 1.225 kg (formato pt-BR).
+    await tester.tap(find.byKey(const ValueKey('done-b')));
+    await tester.pumpAndSettle();
+    expect(text('session-volume'), 'Volume total: 1.225 kg');
+  });
+
   testWidgets('ajuste rápido +/- de peso e reps e conclusão da série', (
     tester,
   ) async {

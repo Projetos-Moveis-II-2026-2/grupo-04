@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:olimpus/features/workout/domain/entities/workout_session_entity.dart';
 
 /// Formata carga sem casas decimais desnecessárias (60 → "60", 62.5 → "62.5").
@@ -7,6 +8,11 @@ String formatKg(double? kg) {
   if (kg == null) return '-';
   return kg == kg.roundToDouble() ? kg.toStringAsFixed(0) : '$kg';
 }
+
+final _volumeFormat = NumberFormat('#,##0.#', 'pt_BR');
+
+/// Formata volume em pt-BR (1100 → "1.100", 1262.5 → "1.262,5").
+String formatVolume(double kg) => _volumeFormat.format(kg);
 
 /// Cabeçalho das colunas de séries.
 class SessionSetHeader extends StatelessWidget {

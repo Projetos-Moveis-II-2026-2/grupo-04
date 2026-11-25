@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:olimpus/core/utils/ui_feedback_extension.dart';
 import 'package:olimpus/features/workout/domain/entities/workout_session_entity.dart';
+import 'package:olimpus/features/workout/domain/usecases/compute_volume.dart';
 import 'package:olimpus/features/workout/presentation/providers/workout_session_providers.dart';
 import 'package:olimpus/features/workout/presentation/widgets/session_set_row.dart';
 
@@ -135,26 +136,58 @@ class _WorkoutSessionPageState extends ConsumerState<WorkoutSessionPage> {
       (sum, e) => sum + e.sets.where((s) => _current(s).completed).length,
     );
     final total = session.totalSets;
+    // Volume ao vivo a partir dos valores otimistas (reflete cada toque).
+    const computeVolume = ComputeVolume();
+    final volume = computeVolume([
+      for (final e in session.exercises)
+        SessionExercise(
+          exerciseId: e.exerciseId,
+          exerciseName: e.exerciseName,
+          sets: [for (final s in e.sets) _current(s)],
+        ),
+    ]);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(session.templateName ?? 'Treino'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(28),
+          preferredSize: const Size.fromHeight(52),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: total == 0 ? 0 : completed / total,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: LinearProgressIndicator(
+                        value: total == 0 ? 0 : completed / total,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '$completed/$total séries',
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  '$completed/$total séries',
-                  style: theme.textTheme.labelMedium,
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.fitness_center,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Volume total: ${formatVolume(volume.total)} kg',
+                      key: const ValueKey('session-volume'),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -168,6 +201,8 @@ class _WorkoutSessionPageState extends ConsumerState<WorkoutSessionPage> {
           final exercise = session.exercises[index];
           return _ExerciseCard(
             exercise: exercise,
+            volumeKg: volume.of(exercise.exerciseId),
+            previousVolumeKg: computeVolume.ofSets(exercise.previousSets),
             readOnly: session.isCompleted,
             current: _current,
             onSetChanged: _updateSet,
@@ -200,6 +235,8 @@ class _WorkoutSessionPageState extends ConsumerState<WorkoutSessionPage> {
 class _ExerciseCard extends StatelessWidget {
   const _ExerciseCard({
     required this.exercise,
+    required this.volumeKg,
+    required this.previousVolumeKg,
     required this.readOnly,
     required this.current,
     required this.onSetChanged,
@@ -207,6 +244,8 @@ class _ExerciseCard extends StatelessWidget {
   });
 
   final SessionExercise exercise;
+  final double volumeKg;
+  final double previousVolumeKg;
   final bool readOnly;
   final SessionSet Function(SessionSet) current;
   final ValueChanged<SessionSet> onSetChanged;
@@ -224,11 +263,44 @@ class _ExerciseCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              exercise.exerciseName,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    exercise.exerciseName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${formatVolume(volumeKg)} kg',
+                        key: ValueKey('volume-${exercise.exerciseId}'),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      if (previousVolumeKg > 0)
+                        Text(
+                          'anterior: ${formatVolume(previousVolumeKg)} kg',
+                          key: ValueKey(
+                            'previous-volume-${exercise.exerciseId}',
+                          ),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 2),
             Text(
