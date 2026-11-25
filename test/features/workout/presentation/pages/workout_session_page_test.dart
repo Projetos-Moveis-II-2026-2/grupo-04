@@ -2,12 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olimpus/features/workout/domain/entities/workout_session_entity.dart';
 import 'package:olimpus/features/workout/domain/entities/workout_template_entity.dart';
 import 'package:olimpus/features/workout/domain/repositories/i_workout_session_repository.dart';
 import 'package:olimpus/features/workout/presentation/pages/workout_session_page.dart';
 import 'package:olimpus/features/workout/presentation/providers/workout_session_providers.dart';
+import 'package:olimpus/core/notifications/local_notification_service.dart';
+import 'package:olimpus/core/providers.dart';
+import 'package:olimpus/features/workout/presentation/providers/rest_timer_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Repositório em memória que reemite a sessão a cada alteração.
 class _FakeSessionRepository implements IWorkoutSessionRepository {
@@ -63,10 +68,68 @@ class _FakeSessionRepository implements IWorkoutSessionRepository {
   }) async => session.id;
 }
 
+/// Registra as chamadas de notificação (som) sem tocar no plugin.
+class _FakeNotifications implements LocalNotificationService {
+  final calls = <String>[];
+
+  @override
+  Future<bool> requestPermission() async {
+    calls.add('permission');
+    return true;
+  }
+
+  @override
+  Future<void> show({
+    required int id,
+    required String title,
+    required String body,
+    required AlertChannel channel,
+  }) async => calls.add('show:$title');
+
+  @override
+  Future<void> schedule({
+    required int id,
+    required DateTime at,
+    required String title,
+    required String body,
+    required AlertChannel channel,
+  }) async => calls.add('schedule');
+
+  @override
+  Future<void> cancel(int id) async => calls.add('cancel');
+}
+
+/// Relógio controlado pelo teste (avança junto com `tester.pump`).
+class _Clock {
+  DateTime now = DateTime(2026, 11, 25, 10);
+}
+
 void main() {
   late _FakeSessionRepository repo;
+  late SharedPreferences prefs;
+  late _FakeNotifications notifications;
+  late _Clock clock;
 
-  setUp(() {
+  List<Override> overrides() => [
+    workoutSessionRepositoryProvider.overrideWithValue(repo),
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    localNotificationServiceProvider.overrideWithValue(notifications),
+    restTimerClockProvider.overrideWithValue(() => clock.now),
+  ];
+
+  /// Avança relógio e timers juntos.
+  Future<void> elapse(WidgetTester tester, Duration d) async {
+    for (var i = 0; i < d.inSeconds; i++) {
+      clock.now = clock.now.add(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+    }
+  }
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+    notifications = _FakeNotifications();
+    clock = _Clock();
     repo = _FakeSessionRepository(
       WorkoutSessionEntity(
         id: 's1',
@@ -115,7 +178,7 @@ void main() {
   Future<void> pump(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [workoutSessionRepositoryProvider.overrideWithValue(repo)],
+        overrides: overrides(),
         child: const MaterialApp(home: WorkoutSessionPage(sessionId: 's1')),
       ),
     );
@@ -226,7 +289,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [workoutSessionRepositoryProvider.overrideWithValue(repo)],
+        overrides: overrides(),
         child: MaterialApp(
           home: Builder(
             builder: (context) => TextButton(
@@ -254,5 +317,109 @@ void main() {
     // Volta para a tela anterior após concluir.
     expect(find.byType(WorkoutSessionPage), findsNothing);
     expect(find.text('abrir'), findsOneWidget);
+  });
+
+  group('cronômetro de descanso (#41)', () {
+    String label(WidgetTester tester) => tester
+        .widget<Text>(find.byKey(const ValueKey('rest-timer-label')))
+        .data!;
+
+    testWidgets(
+      'Verificação #41: concluir série → timer inicia → zerar mostra alerta',
+      (tester) async {
+        await prefs.setInt('rest_timer_seconds', 30);
+        await pump(tester);
+        expect(label(tester), 'Descanso · 0:30');
+
+        await tester.tap(find.byKey(const ValueKey('done-a')));
+        await tester.pump();
+        expect(label(tester), '0:30');
+        expect(notifications.calls, containsAll(['schedule', 'permission']));
+
+        await elapse(tester, const Duration(seconds: 10));
+        expect(label(tester), '0:20');
+
+        await elapse(tester, const Duration(seconds: 20));
+        // Alerta visual + sonoro (notificação imediata).
+        expect(label(tester), 'Descanso concluído!');
+        expect(find.byIcon(Icons.alarm_on), findsOneWidget);
+        expect(notifications.calls.last, 'show:Descanso concluído');
+
+        await tester.tap(find.byKey(const ValueKey('rest-dismiss')));
+        await tester.pump();
+        expect(label(tester), 'Descanso · 0:30');
+      },
+    );
+
+    testWidgets('iniciar, pausar, retomar e parar manualmente', (tester) async {
+      await pump(tester);
+      expect(label(tester), 'Descanso · 1:30'); // padrão 90 s
+
+      await tester.tap(find.byKey(const ValueKey('rest-start')));
+      await tester.pump();
+      await elapse(tester, const Duration(seconds: 5));
+      expect(label(tester), '1:25');
+
+      await tester.tap(find.byKey(const ValueKey('rest-pause')));
+      await tester.pump();
+      expect(label(tester), 'Pausado · 1:25');
+      expect(notifications.calls.last, 'cancel');
+      // Pausado não corre.
+      await elapse(tester, const Duration(seconds: 10));
+      expect(label(tester), 'Pausado · 1:25');
+
+      await tester.tap(find.byKey(const ValueKey('rest-resume')));
+      await tester.pump();
+      await elapse(tester, const Duration(seconds: 5));
+      expect(label(tester), '1:20');
+
+      await tester.tap(find.byKey(const ValueKey('rest-stop')));
+      await tester.pump();
+      expect(label(tester), 'Descanso · 1:30');
+      expect(notifications.calls.where((c) => c.startsWith('show')), isEmpty);
+    });
+
+    testWidgets('não inicia sozinho com a opção desligada', (tester) async {
+      await prefs.setBool('rest_timer_auto_start', false);
+      await pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('done-a')));
+      await tester.pump();
+      expect(label(tester), 'Descanso · 1:30');
+      expect(notifications.calls, isEmpty);
+    });
+
+    testWidgets('alterar peso de série já concluída não reinicia o timer', (
+      tester,
+    ) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('done-a')));
+      await tester.pump();
+      await elapse(tester, const Duration(seconds: 10));
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('weight-a')),
+          matching: find.byIcon(Icons.add),
+        ),
+      );
+      await tester.pump();
+      expect(label(tester), '1:20');
+    });
+  });
+
+  test('configuração limita o tempo a 30–180 s', () async {
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+    final settings = container.read(restTimerSettingsProvider.notifier);
+
+    await settings.setSeconds(10);
+    expect(container.read(restTimerSettingsProvider).seconds, 30);
+    await settings.setSeconds(500);
+    expect(container.read(restTimerSettingsProvider).seconds, 180);
+    await settings.setSeconds(120);
+    expect(prefs.getInt('rest_timer_seconds'), 120);
   });
 }

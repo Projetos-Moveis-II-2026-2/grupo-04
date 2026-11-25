@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:olimpus/core/utils/ui_feedback_extension.dart';
 import 'package:olimpus/features/workout/domain/entities/workout_session_entity.dart';
 import 'package:olimpus/features/workout/domain/usecases/compute_volume.dart';
+import 'package:olimpus/features/workout/presentation/providers/rest_timer_providers.dart';
 import 'package:olimpus/features/workout/presentation/providers/workout_session_providers.dart';
+import 'package:olimpus/features/workout/presentation/widgets/rest_timer_bar.dart';
 import 'package:olimpus/features/workout/presentation/widgets/session_set_row.dart';
 
 /// Tela de execução do treino: registra séries (peso/reps/concluída) com a
@@ -26,7 +28,26 @@ class _WorkoutSessionPageState extends ConsumerState<WorkoutSessionPage> {
 
   SessionSet _current(SessionSet fromDb) => _pending[fromDb.id] ?? fromDb;
 
+  /// Estado atual (otimista ou do banco) de uma série pelo ID.
+  SessionSet? _lookup(String id) {
+    if (_pending[id] case final s?) return s;
+    final session = ref
+        .read(workoutSessionStreamProvider(widget.sessionId))
+        .value;
+    for (final e in session?.exercises ?? const <SessionExercise>[]) {
+      for (final s in e.sets) {
+        if (s.id == id) return s;
+      }
+    }
+    return null;
+  }
+
   Future<void> _updateSet(SessionSet set) async {
+    final justCompleted =
+        set.completed && !(_lookup(set.id)?.completed ?? false);
+    if (justCompleted && ref.read(restTimerSettingsProvider).autoStart) {
+      ref.read(restTimerProvider.notifier).start();
+    }
     setState(() => _pending[set.id] = set);
     try {
       await ref.read(updateSessionSetUseCaseProvider)(set);
@@ -78,6 +99,7 @@ class _WorkoutSessionPageState extends ConsumerState<WorkoutSessionPage> {
     try {
       await ref.read(completeWorkoutSessionUseCaseProvider)(widget.sessionId);
       if (!mounted) return;
+      ref.read(restTimerProvider.notifier).stop();
       context.showSuccessSnackBar('Treino concluído! Bom trabalho 💪');
       final popped = await Navigator.of(context).maybePop();
       if (popped || !mounted) return;
@@ -215,16 +237,24 @@ class _WorkoutSessionPageState extends ConsumerState<WorkoutSessionPage> {
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: FilledButton.icon(
-                  key: const ValueKey('finish-session'),
-                  onPressed: _finishing ? null : () => _finish(session),
-                  icon: _finishing
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.flag_outlined),
-                  label: const Text('Concluir treino'),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const RestTimerBar(),
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      key: const ValueKey('finish-session'),
+                      onPressed: _finishing ? null : () => _finish(session),
+                      icon: _finishing
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.flag_outlined),
+                      label: const Text('Concluir treino'),
+                    ),
+                  ],
                 ),
               ),
             ),
