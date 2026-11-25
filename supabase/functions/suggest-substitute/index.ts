@@ -5,7 +5,7 @@
 // ai_rate_limits com exercise_id = 'assistant' (1 fallback por
 // usuário por semana, cláusula da issue #28).
 import "@supabase/functions-js/edge-runtime.d.ts";
-import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@^2";
 import { withSupabase } from "@supabase/server";
 
 const MODEL = "gemini-3.5-flash-lite";

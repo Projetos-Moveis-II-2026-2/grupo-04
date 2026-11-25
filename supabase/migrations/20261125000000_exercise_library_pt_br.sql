@@ -11,7 +11,7 @@ ALTER TABLE public.exercise_library
   ADD COLUMN IF NOT EXISTS instructions_en TEXT[];
 
 UPDATE public.exercise_library
-SET name_en = name,
+SET name_en = replace(replace(name, chr(157), ''), chr(13), ''),
     instructions_en = COALESCE(
       ARRAY(
         SELECT replace(replace(x, chr(157), ''), chr(13), '')
