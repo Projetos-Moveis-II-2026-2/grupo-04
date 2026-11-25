@@ -135,7 +135,7 @@ class WaterReminderSettingsNotifier
   Future<void> sendTestReminder() async {
     final notifService = ref.read(localNotificationServiceProvider);
     await notifService.scheduleTestNotificationInOneMinute(
-      id: 4699,
+      id: kWaterReminderTestId,
       title: kWaterReminderTitle,
       body: 'Lembrete de teste: hora de se hidratar! 💧',
       payload: kWaterReminderPayload,
@@ -149,35 +149,156 @@ final waterReminderSettingsProvider =
       WaterReminderSettingsNotifier.new,
     );
 
+/// Gerencia o agendamento serializado e cancelamento seguro de lembretes,
+/// descartando execuções obsoletas para evitar condições de corrida.
+class WaterReminderScheduler {
+  final ILocalNotificationService notifService;
+  int _latestExecutionId = 0;
+  Future<void> _chain = Future.value();
+
+  WaterReminderScheduler(this.notifService);
+
+  /// Agenda os lembretes de forma serializada, descartando agendamentos obsoletos.
+  Future<void> schedule({
+    required WaterReminderSettings settings,
+    required bool goalReachedToday,
+  }) {
+    final executionId = ++_latestExecutionId;
+    _chain = _chain
+        .then((_) async {
+          if (executionId != _latestExecutionId) return;
+          await _executeSchedule(settings, goalReachedToday, executionId);
+        })
+        .catchError((error, stackTrace) {
+          debugPrint('Aviso: erro na fila de agendamento de lembretes: $error');
+        });
+    return _chain;
+  }
+
+  /// Cancela apenas os lembretes recorrentes (IDs 4600..4698).
+  /// Preserva notificações já disparadas na bandeja e o lembrete de teste (ID 4699).
+  Future<void> cancelRecurring() {
+    final executionId = ++_latestExecutionId;
+    _chain = _chain
+        .then((_) async {
+          if (executionId != _latestExecutionId) return;
+          await notifService.cancelRecurringReminders();
+        })
+        .catchError((error, stackTrace) {
+          debugPrint('Aviso: erro ao cancelar lembretes recorrentes: $error');
+        });
+    return _chain;
+  }
+
+  /// Cancela todas as notificações do app (usado apenas no logout).
+  Future<void> cancelAll() {
+    final executionId = ++_latestExecutionId;
+    _chain = _chain
+        .then((_) async {
+          if (executionId != _latestExecutionId) return;
+          await notifService.cancelAll();
+        })
+        .catchError((error, stackTrace) {
+          debugPrint('Aviso: erro ao cancelar todas as notificações: $error');
+        });
+    return _chain;
+  }
+
+  Future<void> _executeSchedule(
+    WaterReminderSettings settings,
+    bool goalReachedToday,
+    int executionId,
+  ) async {
+    // 1. Limpa agendamentos recorrentes anteriores
+    await notifService.cancelRecurringReminders();
+    if (executionId != _latestExecutionId) return;
+
+    if (!settings.isValidWindow || settings.intervalHours <= 0) {
+      return;
+    }
+
+    // 2. Consulta permissão de alarmes exatos
+    final canExact = await notifService.canScheduleExactAlarms();
+    if (executionId != _latestExecutionId) return;
+
+    final now = tz.TZDateTime.now(tz.local);
+    final isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+    final reminders = buildScheduledReminders(
+      settings: settings,
+      now: now,
+      goalReachedToday: goalReachedToday,
+      isAndroid: isAndroid,
+    );
+
+    // 3. Agenda cada horário verificando obsolescência a cada iteração
+    for (final reminder in reminders) {
+      if (executionId != _latestExecutionId) return;
+      await notifService.scheduleDaily(
+        id: reminder.id,
+        title: reminder.title,
+        body: reminder.body,
+        scheduledDate: reminder.scheduledDateTime,
+        exact: canExact,
+        payload: kWaterReminderPayload,
+      );
+    }
+  }
+}
+
+/// Provider do scheduler de notificações.
+final waterReminderSchedulerProvider = Provider<WaterReminderScheduler>((ref) {
+  final notifService = ref.watch(localNotificationServiceProvider);
+  return WaterReminderScheduler(notifService);
+});
+
 /// Sincronizador reativo que mantém os alarmes nativos alinhados com o estado do app.
 class WaterReminderBindingObserver with WidgetsBindingObserver {
   final Ref _ref;
+  bool _isObserved = false;
+  bool _disposed = false;
 
   WaterReminderBindingObserver(this._ref) {
-    WidgetsBinding.instance.addObserver(this);
+    final binding = WidgetsBinding.instance;
+    binding.addObserver(this);
+    _isObserved = true;
   }
 
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    _disposed = true;
+    if (_isObserved) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _checkTimezoneAndPermissions();
+      onAppResumed();
     }
   }
 
-  Future<void> _checkTimezoneAndPermissions() async {
-    _ref.invalidate(notificationPermissionStatusProvider);
+  Future<void> onAppResumed() async {
+    // 1. Atualiza timezone caso tenha mudado nas configurações do SO
     try {
       final timezoneInfo = await FlutterTimezone.getLocalTimezone();
       final currentTz = timezoneInfo.identifier;
       if (tz.local.name != currentTz) {
         tz.setLocalLocation(tz.getLocation(currentTz));
-        _ref.invalidate(waterReminderSettingsProvider);
       }
     } catch (_) {}
+
+    if (_disposed) return;
+
+    // 2. Invalida permissões para refletir alterações feitas no sistema
+    _ref.invalidate(notificationPermissionStatusProvider);
+
+    // 3. Invalida o stream do total de hoje para recalcular caso o dia tenha virado
+    _ref.invalidate(todayWaterTotalProvider);
+
+    // 4. Invalida as configurações para forçar reagendamento (novos alarmes exatos, virada de dia, etc.)
+    _ref.invalidate(waterReminderSettingsProvider);
   }
 }
 
@@ -194,62 +315,31 @@ final waterReminderBindingProvider = Provider<void>((ref) {
   ref.watch(waterReminderLifecycleObserverProvider);
 
   final user = ref.watch(currentUserProvider);
-  final notifService = ref.watch(localNotificationServiceProvider);
+  final scheduler = ref.watch(waterReminderSchedulerProvider);
   final settingsAsync = ref.watch(waterReminderSettingsProvider);
-  final totalMl = ref.watch(todayWaterTotalProvider).value ?? 0;
+  final totalAsync = ref.watch(todayWaterTotalProvider);
   final goalMl = ref.watch(dailyWaterGoalProvider);
 
-  final isGoalReached = goalMl > 0 && totalMl >= goalMl;
-
-  // Quando não há usuário logado: cancela todos os lembretes
+  // Quando não há usuário logado: cancela todos os alarmes (logout limpa tudo)
   if (user == null) {
-    notifService.cancelAll();
+    scheduler.cancelAll();
     return;
   }
 
   final settings = settingsAsync.value;
   if (settings == null || !settings.enabled) {
-    notifService.cancelAll();
+    scheduler.cancelRecurring();
     return;
   }
 
-  _scheduleWaterReminders(
-    notifService: notifService,
-    settings: settings,
-    goalReachedToday: isGoalReached,
-  );
+  // Se o total de hoje ainda estiver no carregamento inicial sem valor prévio,
+  // aguarda a primeira emissão para evitar agendamento com total = 0 caso a meta já tenha sido batida
+  if (totalAsync.isLoading && totalAsync.value == null) {
+    return;
+  }
+
+  final totalMl = totalAsync.value ?? 0;
+  final isGoalReached = goalMl > 0 && totalMl >= goalMl;
+
+  scheduler.schedule(settings: settings, goalReachedToday: isGoalReached);
 });
-
-Future<void> _scheduleWaterReminders({
-  required ILocalNotificationService notifService,
-  required WaterReminderSettings settings,
-  required bool goalReachedToday,
-}) async {
-  await notifService.cancelAll();
-
-  if (!settings.isValidWindow || settings.intervalHours <= 0) {
-    return;
-  }
-
-  final canExact = await notifService.canScheduleExactAlarms();
-  final now = tz.TZDateTime.now(tz.local);
-  final isAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-
-  final reminders = buildScheduledReminders(
-    settings: settings,
-    now: now,
-    goalReachedToday: goalReachedToday,
-    isAndroid: isAndroid,
-  );
-
-  for (final reminder in reminders) {
-    await notifService.scheduleDaily(
-      id: reminder.id,
-      title: reminder.title,
-      body: reminder.body,
-      scheduledDate: reminder.scheduledDateTime,
-      exact: canExact,
-      payload: kWaterReminderPayload,
-    );
-  }
-}

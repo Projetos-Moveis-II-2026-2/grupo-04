@@ -38,34 +38,40 @@ Future<void> main() async {
     overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
   );
 
-  final localNotificationService = container.read(
-    localNotificationServiceProvider,
-  );
-  await localNotificationService.initialize(
-    onNotificationTapped: (response) {
-      final payload = response.payload;
-      if (payload != null && payload.isNotEmpty) {
-        final context = rootNavigatorKey.currentContext;
-        if (context != null) {
-          context.push(payload);
-        } else {
-          container
-              .read(pendingNotificationRouteProvider.notifier)
-              .setRoute(payload);
+  // Inicialização segura das notificações: qualquer falha na plataforma
+  // não pode interromper o funcionamento e abertura do aplicativo.
+  try {
+    final localNotificationService = container.read(
+      localNotificationServiceProvider,
+    );
+    await localNotificationService.initialize(
+      onNotificationTapped: (response) {
+        final payload = response.payload;
+        if (payload != null && payload.isNotEmpty) {
+          final context = rootNavigatorKey.currentContext;
+          if (context != null) {
+            context.push(payload);
+          } else {
+            container
+                .read(pendingNotificationRouteProvider.notifier)
+                .setRoute(payload);
+          }
         }
-      }
-    },
-  );
+      },
+    );
 
-  final launchDetails = await localNotificationService
-      .getNotificationAppLaunchDetails();
-  if (launchDetails?.didNotificationLaunchApp == true) {
-    final payload = launchDetails?.notificationResponse?.payload;
-    if (payload != null && payload.isNotEmpty) {
-      container
-          .read(pendingNotificationRouteProvider.notifier)
-          .setRoute(payload);
+    final launchDetails = await localNotificationService
+        .getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp == true) {
+      final payload = launchDetails?.notificationResponse?.payload;
+      if (payload != null && payload.isNotEmpty) {
+        container
+            .read(pendingNotificationRouteProvider.notifier)
+            .setRoute(payload);
+      }
     }
+  } catch (e) {
+    debugPrint('Aviso: falha ao configurar notificações no startup: $e');
   }
 
   runApp(

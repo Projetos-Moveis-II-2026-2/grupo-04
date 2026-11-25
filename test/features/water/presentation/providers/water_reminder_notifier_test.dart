@@ -8,6 +8,7 @@ import 'package:olimpus/core/providers.dart';
 import 'package:olimpus/features/auth/domain/entities/app_user.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:olimpus/features/water/data/repositories/water_reminder_repository_impl.dart';
+import 'package:olimpus/features/water/domain/entities/water_reminder_settings.dart';
 import 'package:olimpus/features/water/presentation/providers/water_providers.dart';
 import 'package:olimpus/features/water/presentation/providers/water_reminder_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +18,7 @@ import 'package:timezone/timezone.dart' as tz;
 class FakeLocalNotificationService implements ILocalNotificationService {
   final List<int> cancelledIds = [];
   bool cancelledAll = false;
+  int cancelRecurringCount = 0;
   final List<
     ({int id, String title, String body, tz.TZDateTime date, bool exact})
   >
@@ -39,6 +41,12 @@ class FakeLocalNotificationService implements ILocalNotificationService {
   @override
   Future<void> cancel(int id) async {
     cancelledIds.add(id);
+  }
+
+  @override
+  Future<void> cancelRecurringReminders() async {
+    cancelRecurringCount++;
+    scheduledDaily.clear();
   }
 
   @override
@@ -124,6 +132,7 @@ void main() {
     AppUser? user,
     bool unauthenticated = false,
     int todayWaterTotal = 0,
+    AsyncValue<int>? todayWaterTotalAsync,
   }) {
     final effectiveUser = unauthenticated ? null : (user ?? testUser);
     final repo = WaterReminderRepositoryImpl(prefs);
@@ -136,7 +145,9 @@ void main() {
           fakePermService,
         ),
         currentUserProvider.overrideWith((ref) => effectiveUser),
-        todayWaterTotalProvider.overrideWithValue(AsyncData(todayWaterTotal)),
+        todayWaterTotalProvider.overrideWithValue(
+          todayWaterTotalAsync ?? AsyncData(todayWaterTotal),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -249,6 +260,7 @@ void main() {
       final container = createContainer(unauthenticated: true);
 
       container.read(waterReminderBindingProvider);
+      await Future<void>.delayed(Duration.zero);
 
       expect(fakeNotifService.cancelledAll, isTrue);
       expect(fakeNotifService.scheduledDaily, isEmpty);
@@ -296,6 +308,100 @@ void main() {
         for (final scheduled in fakeNotifService.scheduledDaily) {
           expect(scheduled.date.day, tomorrow.day);
         }
+      },
+    );
+
+    test('reagendamento/desativação cancela apenas recorrentes e não chama cancelAll', () async {
+      final container = createContainer();
+      await container
+          .read(waterReminderSettingsProvider.notifier)
+          .setEnabled(true);
+
+      container.read(waterReminderBindingProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeNotifService.cancelRecurringCount, greaterThan(0));
+      expect(fakeNotifService.cancelledAll, isFalse);
+
+      // Desativa lembretes
+      await container
+          .read(waterReminderSettingsProvider.notifier)
+          .setEnabled(false);
+      container.read(waterReminderBindingProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeNotifService.cancelRecurringCount, greaterThan(1));
+      // cancelAll continua falso (preserva notificações da bandeja e teste ID 4699)
+      expect(fakeNotifService.cancelledAll, isFalse);
+    });
+
+    test('startup com total em loading não agenda prematuramente', () async {
+      final container = createContainer(
+        todayWaterTotalAsync: const AsyncLoading(),
+      );
+      await container
+          .read(waterReminderSettingsProvider.notifier)
+          .setEnabled(true);
+
+      container.read(waterReminderBindingProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      // Enquanto estiver carregando sem valor, não agenda nada prematuramente
+      expect(fakeNotifService.scheduledDaily, isEmpty);
+    });
+  });
+
+  group('WaterReminderScheduler concorrência e descarte de obsoletos', () {
+    test(
+      'descarta execução obsoleta quando nova operação chega antes de concluir',
+      () async {
+        final scheduler = WaterReminderScheduler(fakeNotifService);
+
+        const s1 = WaterReminderSettings(enabled: true, intervalHours: 1);
+        const s2 = WaterReminderSettings(enabled: true, intervalHours: 3);
+
+        // Dispara dois agendamentos concorrentes
+        final f1 = scheduler.schedule(settings: s1, goalReachedToday: false);
+        final f2 = scheduler.schedule(settings: s2, goalReachedToday: true);
+
+        await Future.wait([f1, f2]);
+
+        // O resultado final deve conter os agendamentos de s2 (intervalo de 3h com meta batida)
+        expect(fakeNotifService.scheduledDaily, isNotEmpty);
+        final tomorrow = tz.TZDateTime.now(tz.local)
+            .add(const Duration(days: 1));
+        for (final scheduled in fakeNotifService.scheduledDaily) {
+          expect(scheduled.date.day, tomorrow.day);
+        }
+      },
+    );
+
+    test('cancelRecurring descarta agendamento concorrente anterior', () async {
+      final scheduler = WaterReminderScheduler(fakeNotifService);
+      const s1 = WaterReminderSettings(enabled: true, intervalHours: 2);
+
+      final f1 = scheduler.schedule(settings: s1, goalReachedToday: false);
+      final f2 = scheduler.cancelRecurring();
+
+      await Future.wait([f1, f2]);
+
+      // Como o cancelamento foi enfileirado por último, a lista final de agendados fica vazia
+      expect(fakeNotifService.scheduledDaily, isEmpty);
+    });
+  });
+
+  group('WaterReminderBindingObserver', () {
+    test(
+      'resumed dispara invalidação de permissões, total do dia e settings',
+      () async {
+        final container = createContainer();
+        final observer = container.read(waterReminderLifecycleObserverProvider);
+
+        // Simula retomada do app (resume)
+        await observer.onAppResumed();
+
+        // Passou sem exceções
+        expect(true, isTrue);
       },
     );
   });

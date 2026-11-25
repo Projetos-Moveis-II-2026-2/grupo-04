@@ -33,6 +33,9 @@ class FakeLocalNotificationService implements ILocalNotificationService {
   Future<void> cancel(int id) async {}
 
   @override
+  Future<void> cancelRecurringReminders() async {}
+
+  @override
   Future<void> cancelAll() async {}
 
   @override
