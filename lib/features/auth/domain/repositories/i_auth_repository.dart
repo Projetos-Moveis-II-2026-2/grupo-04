@@ -18,7 +18,14 @@ abstract interface class IAuthRepository {
   /// Exclui definitivamente a conta do usuário autenticado e todos os dados.
   Future<void> deleteAccount();
 
+  /// Usuário autenticado a cada mudança de sessão (restauração no boot,
+  /// login, renovação do token, atualização de dados, logout). Emite só
+  /// quando o usuário muda; falhas de rede na renovação não deslogam.
   Stream<AppUser?> authStateChanges();
+
+  /// Emite quando a sessão termina sem ação do usuário: refresh token
+  /// expirado/revogado no servidor ou sessão salva inválida.
+  Stream<void> sessionExpired();
 
   AppUser? get currentUser;
 }

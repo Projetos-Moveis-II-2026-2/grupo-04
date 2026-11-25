@@ -63,10 +63,35 @@ class AuthRepositoryImpl implements IAuthRepository {
 
   @override
   Stream<AppUser?> authStateChanges() {
-    return _datasource.onAuthStateChange().map(
-      (event) =>
-          event.session?.user != null ? _mapUser(event.session!.user) : null,
-    );
+    return _datasource
+        .onAuthStateChange()
+        // Falha de rede ao renovar o token (sem internet): o SDK tenta de
+        // novo sozinho e a sessão continua válida localmente (offline-first).
+        // Não propagar como erro evita derrubar o estado de autenticação.
+        .handleError(
+          (Object _) {},
+          test: (error) => error is AuthRetryableFetchException,
+        )
+        .map(
+          (event) => event.session?.user != null
+              ? _mapUser(event.session!.user)
+              : null,
+        )
+        .distinct();
+  }
+
+  @override
+  Stream<void> sessionExpired() {
+    return _datasource
+        .onAuthStateChange()
+        .handleError((Object _) {})
+        .where(
+          (state) =>
+              state.event == AuthChangeEvent.signedOut &&
+              (state.signOutReason == SignOutReason.sessionExpired ||
+                  state.signOutReason == SignOutReason.sessionMissing),
+        )
+        .map((_) {});
   }
 
   @override
