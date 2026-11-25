@@ -11,6 +11,7 @@ import '../providers/water_providers.dart';
 import '../widgets/daily_water_total_card.dart';
 import '../widgets/edit_water_goal_dialog.dart';
 import '../widgets/today_water_entries_list.dart';
+import '../widgets/water_history_skeletons.dart';
 import '../widgets/weekly_water_chart.dart';
 
 /// Página principal de visualização de consumo de água (histórico diário e semanal).
@@ -94,12 +95,7 @@ class WaterHistoryPage extends ConsumerWidget {
                   goalMl: goal,
                   onEditGoal: () => EditWaterGoalDialog.show(context),
                 ),
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
+                loading: () => const DailyWaterTotalCardSkeleton(),
                 error: (err, _) => Card(
                   color: theme.colorScheme.errorContainer,
                   child: Padding(
@@ -136,10 +132,7 @@ class WaterHistoryPage extends ConsumerWidget {
               weeklyAsync.when(
                 data: (summaries) =>
                     WeeklyWaterChart(summaries: summaries, dailyGoalMl: goal),
-                loading: () => const SizedBox(
-                  height: 180,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+                loading: () => const WeeklyWaterChartSkeleton(),
                 error: (err, _) => Card(
                   color: theme.colorScheme.errorContainer,
                   child: Padding(
@@ -169,12 +162,7 @@ class WaterHistoryPage extends ConsumerWidget {
                     }
                   },
                 ),
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
+                loading: () => const TodayWaterEntriesListSkeleton(),
                 error: (err, _) => Card(
                   color: theme.colorScheme.errorContainer,
                   child: Padding(
