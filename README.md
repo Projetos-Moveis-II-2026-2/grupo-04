@@ -82,7 +82,7 @@ Status conferido no código de `lib/` (telas, widgets e serviços efetivamente r
 | Onboarding e perfil | Pronto | Tela de configuração inicial (nome, peso e meta diária de água) obrigatória no primeiro acesso; perfil salvo no Supabase. |
 | Navegação e tema | Pronto | `go_router` com redirecionamento por autenticação e onboarding; barra inferior com Início, Treinos, Exercícios e Progresso; tema claro/escuro; configurações (tema, vibração, som de feedback, meta de água, sair, excluir conta). |
 | Biblioteca de exercícios | Pronto (catálogo local) | Lista com busca e filtro por grupo muscular, detalhes e textos em pt-BR. O catálogo vem dos assets `assets/data/exercises.json` e `exercises_pt.json` (classe `ExerciseRemoteDataSourceFake`) e é guardado em cache no Drift; o app não lê a tabela `exercise_library` do Supabase. |
-| Hidratação | Pronto | Registro rápido (+250 ml e valor livre), remoção, meta diária editável, total do dia, gráfico semanal e histórico. Gravação no Drift com enfileiramento na `SyncQueue`. |
+| Hidratação | Pronto | Registro rápido (+250 ml, +500 ml e valor livre), remoção, meta diária editável, total do dia, gráfico semanal e histórico. Gravação no Drift com enfileiramento na `SyncQueue`. |
 | Treino livre | Parcial | Escolha de exercício, registro de séries (carga e repetições), timer de descanso fixo de 1 minuto e conclusão do treino. A gravação é feita **apenas no Drift**: `FreeWorkoutRepository` não enfileira nada na `SyncQueue`, então os treinos não sobem para o Supabase. |
 | Fichas de treino (templates) | Pendente | A aba Treinos lista apenas o "Treino livre". A rota `/workout/:id` é um placeholder ("Detalhes da ficha de treino"); não há tela para criar, editar ou executar fichas. Existem só a tabela `workout_templates` e o pull inicial do Supabase. |
 | Progresso | Pronto | Sequência (streak), calendário mensal, resumo do mês e gráfico de evolução de carga por exercício, lidos do Drift. Os dados dependem de treinos registrados. O gerador de dados de demonstração só aparece em modo debug. |
@@ -127,7 +127,7 @@ Versões conforme o [`pubspec.yaml`](pubspec.yaml).
 | `path_provider` | `^2.1.0` | Localização do arquivo do banco local. |
 | `shared_preferences` | `^2.5.0` | Preferências simples (tema, meta de água, estado de sincronização). |
 | `connectivity_plus` | `^7.3.1` | Detecta a conexão para drenar a fila de sincronização. |
-| `dio` | `^5.7.0` | Cliente HTTP com interceptors de erro e retry. |
+| `dio` | `^5.7.0` | Cliente HTTP com interceptors de erro e retry. Configurado em `core/network/`; as features ainda não o consomem. |
 | `fl_chart` | `^1.2.0` | Gráficos de água e de evolução de carga. |
 | `cached_network_image` | `^3.4.1` | Cache das imagens dos exercícios. |
 | `intl` | `^0.19.0` | Formatação de datas e números em pt-BR. |
@@ -340,7 +340,7 @@ O projeto segue a abordagem **feature-first**, inspirada em Clean Architecture. 
 Decisões principais:
 
 - **Riverpod** é o gerenciador de estado **e** o container de injeção de dependência (não há `get_it`).
-- **Repository Pattern:** a UI consome interfaces do domínio (por exemplo, `IAuthRepository`, `IWaterRepository`); as implementações ficam em `data/`.
+- **Repository Pattern:** os repositórios têm contratos no domínio (por exemplo, `IAuthRepository`, `IWaterRepository`) e implementações em `data/`. Há exceções ainda não adequadas: `free_workout_page.dart`, `load_suggestion_badge.dart` e `substitution_sheet.dart` importam classes de `data/` diretamente.
 - **go_router** centraliza a navegação em `lib/router/app_router.dart`, com redirecionamentos por estado de autenticação e de onboarding, e `StatefulShellRoute` para a barra de navegação inferior.
 - **Offline-first com Drift e SyncQueue:** as escritas vão primeiro para o SQLite local; operações sincronizáveis entram na tabela `sync_queue` e são enviadas ao Supabase em ordem (FIFO), com retry e backoff exponencial, ao reconectar. Na inicialização, o `InitialSyncService` faz o pull inicial dos dados do usuário.
 - **Supabase** fornece autenticação, Postgres com RLS, RPC e Edge Functions.
