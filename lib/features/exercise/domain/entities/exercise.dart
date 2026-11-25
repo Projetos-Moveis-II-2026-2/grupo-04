@@ -63,11 +63,7 @@ class Exercise extends Equatable {
         .toList(growable: false);
   }
 
-  /// Helper to get the first image URL if available
-  String? get firstImageUrl {
-    if (imageUrls == null || imageUrls!.isEmpty) return null;
-    return imageUrls!.split(',').first.trim();
-  }
+  String? get firstImageUrl => imageUrlList.firstOrNull;
 
   /// Passos de instrução, um por linha, sem marcadores (`•`, `-`, `1.`).
   ///

@@ -76,6 +76,13 @@ void main() {
       expect(buildExercise(imageUrls: null).imageUrlList, isEmpty);
       expect(buildExercise(imageUrls: '  ').imageUrlList, isEmpty);
     });
+
+    test('ignores empty entries when selecting the first frame', () {
+      final exercise = buildExercise(imageUrls: ' , https://img/1.jpg,, ');
+      expect(exercise.imageUrlList, ['https://img/1.jpg']);
+      expect(exercise.firstImageUrl, 'https://img/1.jpg');
+      expect(buildExercise(imageUrls: ' , ').firstImageUrl, isNull);
+    });
   });
 
   group('secondaryMuscleList', () {
