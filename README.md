@@ -401,7 +401,7 @@ O caminho relativo do seed (`<id>/0.jpg`) corresponde à chave `v1/<id>/0.jpg` n
 
 ### Preparar o staging
 
-Na raiz do repositório vinculado ao Supabase, monte uma árvore local `v1/` com os JPGs listados em `supabase/seed/exercises.json`. Os WebP já publicados ficam no bucket.
+Na raiz do repositório vinculado ao Supabase, monte uma árvore local `v1/` com os JPGs listados em `supabase/seed/exercises.json`. O exemplo usa `jq` para ler o seed e mantém os WebP que já estão no bucket.
 
 ```bash
 REPO=$PWD
@@ -418,7 +418,7 @@ done < <(jq -r '.[].images[]' supabase/seed/exercises.json)
 
 ### Enviar para o bucket
 
-Na raiz do staging (o diretório que contém `v1/`), envie a árvore inteira:
+Confirme que o bucket já aceita `image/jpeg` antes do upload. Na raiz do staging (o diretório que contém `v1/`), envie a árvore inteira:
 
 ```bash
 (cd "$STAGING" && supabase storage cp --workdir "$REPO" --experimental --remote -r -j 8 --cache-control max-age=31536000 v1 ss:///exercise-media)
@@ -430,7 +430,7 @@ O upload precisa acontecer **antes** da migration: [`20261125010000_exercise_med
 
 ### `EXERCISE_MEDIA_BASE_URL`
 
-A constante existe em [`lib/core/constants/exercise_media.dart`](lib/core/constants/exercise_media.dart): `ExerciseMedia.baseUrl` lê `EXERCISE_MEDIA_BASE_URL` em tempo de compilação e usa como padrão `${ApiEndpoints.supabaseUrl}/storage/v1/object/public/exercise-media/v1`. Para apontar para outro projeto ou bucket:
+A constante `ExerciseMedia.baseUrl` lê `EXERCISE_MEDIA_BASE_URL` em tempo de compilação e usa como padrão `${ApiEndpoints.supabaseUrl}/storage/v1/object/public/exercise-media/v1`. A configuração vale para as URLs geradas pelo app. As URLs gravadas no banco e retornadas pela RPC usam a base de produção definida na migration.
 
 ```bash
 flutter run --dart-define=EXERCISE_MEDIA_BASE_URL=https://<project-ref>.supabase.co/storage/v1/object/public/exercise-media/v1
