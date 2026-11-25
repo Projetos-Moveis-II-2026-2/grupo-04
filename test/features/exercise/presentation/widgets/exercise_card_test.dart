@@ -77,7 +77,8 @@ void main() {
         MaterialApp(home: ExerciseDetailsPage(exercise: buildExercise())),
       );
 
-      expect(find.text('Peito, Tríceps'), findsOneWidget);
+      expect(find.widgetWithText(Chip, 'Peito'), findsOneWidget);
+      expect(find.widgetWithText(Chip, 'Tríceps'), findsOneWidget);
       expect(find.text('Ombros'), findsOneWidget);
       expect(find.text('Nível: Iniciante'), findsOneWidget);
       expect(find.text('Equipamento: Barra'), findsOneWidget);
