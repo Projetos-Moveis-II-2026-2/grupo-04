@@ -26,7 +26,8 @@ void main() {
     name: 'Supino Reto',
     primaryMuscles: 'chest',
     secondaryMuscles: 'triceps',
-    equipment: 'Barra',
+    equipment: 'barbell',
+    level: 'beginner',
     synced: true,
     updatedAt: now,
   );
@@ -36,7 +37,8 @@ void main() {
     name: 'Agachamento Livre',
     primaryMuscles: 'quadriceps',
     secondaryMuscles: 'glutes',
-    equipment: 'Barra',
+    equipment: 'barbell',
+    level: 'intermediate',
     synced: true,
     updatedAt: now,
   );
@@ -45,7 +47,8 @@ void main() {
     externalId: 'biceps_curl',
     name: 'Rosca Direta',
     primaryMuscles: 'biceps',
-    equipment: 'Halteres',
+    equipment: 'dumbbell',
+    level: 'beginner',
     synced: true,
     updatedAt: now,
   );
@@ -231,6 +234,104 @@ void main() {
       await tester.pump();
 
       expect(container.read(selectedMuscleGroupProvider), isNull);
+      expect(find.byType(ExerciseCard), findsNWidgets(3));
+    });
+  });
+
+  group('ExerciseLibraryPage filtros de equipamento e nível', () {
+    Future<ProviderContainer> pumpWithExercises(WidgetTester tester) async {
+      when(() => mockRepo.watchExercises())
+          .thenAnswer((_) => Stream.value([supino, agachamento, rosca]));
+
+      await pumpApp(
+        tester,
+        child: const ExerciseLibraryPage(),
+        overrides: [exerciseRepositoryProvider.overrideWithValue(mockRepo)],
+      );
+      await tester.pump();
+
+      return ProviderScope.containerOf(
+        tester.element(find.byType(ExerciseLibraryPage)),
+      );
+    }
+
+    Future<void> pickFromMenu(
+      WidgetTester tester,
+      Key chipKey,
+      String option,
+    ) async {
+      await tester.tap(find.byKey(chipKey));
+      await tester.pumpAndSettleBounded();
+      await tester.tap(find.widgetWithText(MenuItemButton, option));
+      await tester.pumpAndSettleBounded();
+    }
+
+    String resultCountText(WidgetTester tester) => tester
+        .widget<Text>(find.byKey(const Key('exercise-result-count')))
+        .data!;
+
+    testWidgets('mostra o contador de resultados', (tester) async {
+      await pumpWithExercises(tester);
+
+      expect(resultCountText(tester), '3 exercícios');
+      expect(find.text('Limpar filtros'), findsNothing);
+    });
+
+    testWidgets('filtra por equipamento pelo menu', (tester) async {
+      final container = await pumpWithExercises(tester);
+
+      await pickFromMenu(tester, const Key('equipment-filter'), 'Halter');
+
+      expect(container.read(selectedEquipmentProvider), 'dumbbell');
+      expect(find.byType(ExerciseCard), findsOneWidget);
+      expect(find.text('Rosca Direta'), findsOneWidget);
+      expect(resultCountText(tester), '1 exercício');
+    });
+
+    testWidgets('combina grupo muscular, equipamento e nível', (tester) async {
+      final container = await pumpWithExercises(tester);
+
+      await pickFromMenu(tester, const Key('level-filter'), 'Iniciante');
+      expect(find.byType(ExerciseCard), findsNWidgets(2));
+
+      await tester.tap(find.widgetWithText(FilterChip, 'Peito'));
+      await pickFromMenu(tester, const Key('equipment-filter'), 'Barra');
+
+      expect(container.read(activeExerciseFilterCountProvider), 3);
+      expect(find.byType(ExerciseCard), findsOneWidget);
+      expect(find.text('Supino Reto'), findsOneWidget);
+      expect(resultCountText(tester), '1 exercício');
+    });
+
+    testWidgets('limpar filtros restaura a lista completa', (tester) async {
+      final container = await pumpWithExercises(tester);
+
+      // Agachamento (único de pernas) é intermediário: interseção vazia.
+      await tester.tap(find.widgetWithText(FilterChip, 'Pernas'));
+      await pickFromMenu(tester, const Key('level-filter'), 'Iniciante');
+
+      expect(find.byType(ExerciseCard), findsNothing);
+      expect(resultCountText(tester), '0 exercícios');
+      expect(find.text('Nenhum exercício encontrado.'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Limpar filtros').first);
+      await tester.pumpAndSettleBounded();
+
+      expect(container.read(selectedMuscleGroupProvider), isNull);
+      expect(container.read(selectedLevelProvider), isNull);
+      expect(container.read(selectedEquipmentProvider), isNull);
+      expect(find.byType(ExerciseCard), findsNWidgets(3));
+      expect(find.text('Limpar filtros'), findsNothing);
+    });
+
+    testWidgets('opção "Todos" do menu remove o filtro', (tester) async {
+      final container = await pumpWithExercises(tester);
+
+      await pickFromMenu(tester, const Key('level-filter'), 'Avançado');
+      expect(container.read(selectedLevelProvider), 'expert');
+
+      await pickFromMenu(tester, const Key('level-filter'), 'Todos os níveis');
+      expect(container.read(selectedLevelProvider), isNull);
       expect(find.byType(ExerciseCard), findsNWidgets(3));
     });
   });
