@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:olimpus/core/constants/exercise_media.dart';
 import 'package:olimpus/features/exercise/data/datasources/exercise_remote_datasource_fake.dart';
 
 void main() {
@@ -57,7 +58,7 @@ void main() {
       expect(result.first.instructions, '• Deite no banco\n• Empurre a barra');
       expect(
         result.first.imageUrls,
-        'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Press/0.jpg',
+        ExerciseMedia.frameUrl('Bench_Press/0.jpg'),
       );
       expect(result.first.synced, isTrue);
 

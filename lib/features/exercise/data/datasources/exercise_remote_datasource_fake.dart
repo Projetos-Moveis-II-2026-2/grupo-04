@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/constants/exercise_media.dart';
 import '../../domain/entities/exercise.dart';
 
 const _defaultChunkSize = 100;
@@ -123,10 +124,7 @@ Exercise _mapExerciseJson(
 
   final imagesList = json['images'] as List<dynamic>? ?? [];
   final imageUrls = imagesList
-      .map(
-        (img) =>
-            'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/$img',
-      )
+      .map((img) => ExerciseMedia.frameUrl(img.toString()))
       .join(',');
 
   return Exercise(

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:olimpus/core/constants/exercise_media.dart';
 import 'package:olimpus/core/database/app_database.dart';
 import 'package:olimpus/core/utils/uuid_v4.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,9 +16,6 @@ class SupabaseExerciseCatalogRemoteDataSource
   SupabaseExerciseCatalogRemoteDataSource(this._client);
 
   final SupabaseClient _client;
-
-  static const String _rawGithubBase =
-      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 
   @override
   Future<List<ExerciseLibraryTableCompanion>> fetchCatalog() async {
@@ -105,8 +103,6 @@ class SupabaseExerciseCatalogRemoteDataSource
     }
 
     if (rawList.isEmpty) return null;
-    return rawList
-        .map((img) => img.startsWith('http') ? img : '$_rawGithubBase$img')
-        .join(',');
+    return rawList.map(ExerciseMedia.normalize).join(',');
   }
 }
