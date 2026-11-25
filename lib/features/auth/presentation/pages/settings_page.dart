@@ -8,6 +8,7 @@ import '../../../../core/providers.dart';
 import 'package:olimpus/features/profile/presentation/providers/profile_providers.dart';
 import 'package:olimpus/features/water/presentation/providers/water_providers.dart';
 import 'package:olimpus/features/water/presentation/widgets/edit_water_goal_dialog.dart';
+import 'package:olimpus/features/workout/presentation/providers/rest_timer_providers.dart';
 
 import '../providers/auth_notifier.dart';
 import '../providers/auth_providers.dart';
@@ -27,6 +28,7 @@ class SettingsPage extends ConsumerWidget {
     final userProfileAsync = ref.watch(userProfileProvider);
     final displayName = userProfileAsync.value?.displayName;
     final feedback = ref.watch(actionFeedbackProvider);
+    final restTimer = ref.watch(restTimerSettingsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Configurações')),
@@ -126,6 +128,23 @@ class SettingsPage extends ConsumerWidget {
           ),
           const Divider(),
           ListTile(
+            key: const ValueKey('settings-rest-seconds'),
+            leading: const Icon(Icons.timer_outlined),
+            title: const Text('Descanso entre séries'),
+            subtitle: Text('${restTimer.seconds} segundos'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _editRestSeconds(context, ref, restTimer.seconds),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.play_circle_outline),
+            title: const Text('Iniciar descanso ao concluir série'),
+            value: restTimer.autoStart,
+            onChanged: ref
+                .read(restTimerSettingsProvider.notifier)
+                .setAutoStart,
+          ),
+          const Divider(),
+          ListTile(
             leading: const Icon(
               Icons.water_drop_outlined,
               color: Color(0xFF0288D1),
@@ -157,5 +176,53 @@ class SettingsPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Diálogo para escolher o tempo padrão de descanso (30–180 s, passo 15 s).
+Future<void> _editRestSeconds(
+  BuildContext context,
+  WidgetRef ref,
+  int current,
+) async {
+  var value = current.toDouble();
+  final result = await showDialog<int>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: const Text('Descanso entre séries'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${value.round()} segundos',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            Slider(
+              key: const ValueKey('rest-seconds-slider'),
+              value: value,
+              min: restTimerMinSeconds.toDouble(),
+              max: restTimerMaxSeconds.toDouble(),
+              divisions: (restTimerMaxSeconds - restTimerMinSeconds) ~/ 15,
+              label: '${value.round()} s',
+              onChanged: (v) => setState(() => value = v),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(value.round()),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (result != null) {
+    await ref.read(restTimerSettingsProvider.notifier).setSeconds(result);
   }
 }

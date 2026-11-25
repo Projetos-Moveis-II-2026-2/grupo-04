@@ -36,6 +36,11 @@
                     android:host="auth" />
             </intent-filter>
         </activity>
+        <!-- flutter_local_notifications: dispara o alerta agendado de fim do
+             descanso (#41) mesmo com o app em segundo plano. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
