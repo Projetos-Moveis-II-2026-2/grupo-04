@@ -37,6 +37,15 @@ export async function callLLM(apiKey: string, prompt: string): Promise<string> {
   return text;
 }
 
+// Escapa os curingas do padrão LIKE para que o nome sugerido pelo LLM seja
+// buscado literalmente. A barra invertida precisa vir primeiro.
+export function escapeLike(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
+}
+
 export function buildPrompt(
   exerciseName: string,
   equipment: string | null,
@@ -104,7 +113,7 @@ async function handle(
 
   const { data: exercise, error } = await rlsClient
     .from("exercise_library")
-    .select("name, equipment, primary_muscles")
+    .select("name, name_en, equipment, primary_muscles")
     .eq("id", exerciseId)
     .maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -135,7 +144,7 @@ async function handle(
   }
 
   const prompt = buildPrompt(
-    exercise.name as string,
+    (exercise.name_en ?? exercise.name) as string,
     exercise.equipment as string | null,
     (exercise.primary_muscles as string[] | null) ?? [],
   );
@@ -147,10 +156,11 @@ async function handle(
   for (const s of (parsed.substitutes ?? []).slice(0, 3)) {
     const name = String(s.name ?? "");
     if (!name) continue;
+    const pattern = `%${escapeLike(name)}%`;
     const { data: match } = await rlsClient
       .from("exercise_library")
-      .select("id, external_id, name, equipment, image_urls")
-      .ilike("name", `%${name}%`)
+      .select("id, external_id, name, name_en, equipment, image_urls")
+      .ilike("name_en", pattern)
       .limit(1);
     const m = match?.[0];
     const image = m && Array.isArray(m.image_urls) ? m.image_urls[0] : null;
