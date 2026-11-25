@@ -100,19 +100,32 @@ void main() {
       await dbV1.customStatement('PRAGMA user_version = 1');
       await dbV1.close();
 
-      // Reabre na versão 2 e executa onUpgrade.
+      // Reabre na versão atual (v3) e executa onUpgrade.
       final dbV2 = AppDatabase(NativeDatabase(dbFile));
       addTearDown(dbV2.close);
 
       final libraryRows = await dbV2.select(dbV2.exerciseLibraryTable).get();
       final userSets = await dbV2.select(dbV2.exerciseSets).get();
 
-      expect(dbV2.schemaVersion, 2);
+      expect(dbV2.schemaVersion, 3);
       expect(libraryRows, isEmpty);
       expect(userSets, hasLength(1));
       expect(userSets.single.id, 'set-user-1');
       expect(userSets.single.exerciseId, 'Barbell_Squat');
       expect(userSets.single.weightKg, 100.0);
+
+      // Verifica que a tabela template_exercises criada na v3 está acessível.
+      await dbV2
+          .into(dbV2.templateExercises)
+          .insert(
+            TemplateExercisesCompanion.insert(
+              id: 'tex-mig-1',
+              templateId: 'tpl-1',
+              exerciseId: 'ex-1',
+              updatedAt: now,
+            ),
+          );
+      expect(await dbV2.select(dbV2.templateExercises).get(), hasLength(1));
     },
   );
 }

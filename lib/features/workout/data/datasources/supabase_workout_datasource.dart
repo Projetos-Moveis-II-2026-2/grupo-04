@@ -14,6 +14,10 @@ class SupabaseCloudPullDataSource implements CloudPullDataSource {
         .from('workout_templates')
         .select()
         .order('updated_at');
+    final templateExercises = await _client
+        .from('template_exercises')
+        .select()
+        .order('sort_order');
     final sessions = await _client
         .from('workout_sessions')
         .select()
@@ -29,6 +33,7 @@ class SupabaseCloudPullDataSource implements CloudPullDataSource {
 
     return PullSnapshot(
       workoutTemplates: _copy(templates),
+      templateExercises: _copy(templateExercises),
       workoutSessions: _copy(sessions),
       exerciseSets: _copy(sets),
       waterIntake: _copy(water),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:olimpus/features/progress/domain/entities/streak.dart';
 import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
 import 'package:olimpus/features/progress/presentation/widgets/streak_card.dart';
+import 'package:olimpus/features/workout/presentation/pages/templates_page.dart';
 
 import '../providers/auth_providers.dart';
 
@@ -104,6 +105,28 @@ class HomePage extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             const _HomeStreakSummary(),
+            const SizedBox(height: 24),
+
+            // Seção Minhas Fichas de Treino (Home)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Minhas Fichas',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => context.push('/templates/new'),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Nova ficha'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const TemplatesListView(shrinkWrap: true, compact: true),
             const SizedBox(height: 24),
 
             // Seção de Atalhos Rápidos
