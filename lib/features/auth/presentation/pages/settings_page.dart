@@ -9,6 +9,7 @@ import 'package:olimpus/features/profile/presentation/providers/profile_provider
 import 'package:olimpus/features/water/presentation/providers/water_providers.dart';
 import 'package:olimpus/features/water/presentation/widgets/edit_water_goal_dialog.dart';
 import 'package:olimpus/features/workout/presentation/providers/rest_timer_providers.dart';
+import 'package:olimpus/features/water/presentation/widgets/water_reminder_settings_section.dart';
 
 import '../providers/auth_notifier.dart';
 import '../providers/auth_providers.dart';
@@ -154,6 +155,8 @@ class SettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => EditWaterGoalDialog.show(context),
           ),
+          const Divider(),
+          const WaterReminderSettingsSection(),
           const Divider(),
           ListTile(
             leading: Icon(

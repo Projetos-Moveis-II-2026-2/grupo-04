@@ -54,6 +54,10 @@ android {
             // Nunca assina com a chave de debug. Sem key.properties, a validacao
             // abaixo interrompe apenas as tarefas de release que forem executadas.
             signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
