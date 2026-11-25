@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:olimpus/features/auth/data/datasources/supabase_auth_datasource.dart';
@@ -273,6 +275,104 @@ void main() {
         expect(result.last, isNull);
       },
     );
+
+    Session sessionFor(User user, {String token = 'access-token'}) =>
+        Session(accessToken: token, tokenType: 'bearer', user: user);
+
+    test(
+      'restaura a sessão persistida no boot (initialSession) — #84',
+      () async {
+        final user = buildUser(emailConfirmedAt: '2026-09-16T10:00:00.000Z');
+        when(() => mockDatasource.onAuthStateChange()).thenAnswer(
+          (_) => Stream.value(
+            AuthState(AuthChangeEvent.initialSession, sessionFor(user)),
+          ),
+        );
+
+        final result = await repository.authStateChanges().toList();
+
+        expect(result.single?.id, user.id);
+        expect(result.single?.isEmailConfirmed, isTrue);
+      },
+    );
+
+    test(
+      'tokenRefreshed com o mesmo usuário não emite de novo; userUpdated sim',
+      () async {
+        final user = buildUser(emailConfirmedAt: '2026-09-16T10:00:00.000Z');
+        final updated = buildUser(
+          email: 'novo@example.com',
+          emailConfirmedAt: '2026-09-16T10:00:00.000Z',
+        );
+        when(() => mockDatasource.onAuthStateChange()).thenAnswer(
+          (_) => Stream.fromIterable([
+            AuthState(AuthChangeEvent.initialSession, sessionFor(user)),
+            AuthState(
+              AuthChangeEvent.tokenRefreshed,
+              sessionFor(user, token: 'novo-jwt'),
+            ),
+            AuthState(
+              AuthChangeEvent.tokenRefreshed,
+              sessionFor(user, token: 'outro-jwt'),
+            ),
+            AuthState(AuthChangeEvent.userUpdated, sessionFor(updated)),
+          ]),
+        );
+
+        final result = await repository.authStateChanges().toList();
+
+        expect(result.map((u) => u?.email), [tEmail, 'novo@example.com']);
+      },
+    );
+
+    test(
+      'falha de rede ao renovar não desloga nem quebra o stream (offline)',
+      () async {
+        final user = buildUser(emailConfirmedAt: '2026-09-16T10:00:00.000Z');
+        final controller = StreamController<AuthState>();
+        when(() => mockDatasource.onAuthStateChange())
+            .thenAnswer((_) => controller.stream);
+
+        // toList() falharia se algum erro chegasse ao stream.
+        final result = repository.authStateChanges().toList();
+
+        controller
+          ..add(AuthState(AuthChangeEvent.initialSession, sessionFor(user)))
+          ..addError(AuthRetryableFetchException(message: 'offline'))
+          ..add(AuthState(AuthChangeEvent.tokenRefreshed, sessionFor(user)));
+        unawaited(controller.close());
+
+        final users = await result;
+        expect(users.single?.id, user.id);
+      },
+    );
+  });
+
+  group('sessionExpired (#84)', () {
+    AuthState signedOut(SignOutReason reason) =>
+        AuthState(AuthChangeEvent.signedOut, null, signOutReason: reason);
+
+    test('emite quando o refresh token expira/é revogado ou a sessão salva é inválida', () async {
+      when(() => mockDatasource.onAuthStateChange()).thenAnswer(
+        (_) => Stream.fromIterable([
+          signedOut(SignOutReason.sessionExpired),
+          signedOut(SignOutReason.sessionMissing),
+        ]),
+      );
+
+      expect(await repository.sessionExpired().length, 2);
+    });
+
+    test('não emite no logout feito pelo usuário', () async {
+      when(() => mockDatasource.onAuthStateChange()).thenAnswer(
+        (_) => Stream.fromIterable([
+          signedOut(SignOutReason.userInitiated),
+          AuthState(AuthChangeEvent.signedOut, null),
+        ]),
+      );
+
+      expect(await repository.sessionExpired().length, 0);
+    });
   });
 
   group('currentUser', () {
