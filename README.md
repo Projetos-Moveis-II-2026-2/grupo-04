@@ -165,7 +165,7 @@ flutter run
 
 ### 4. Rodar em um celular Android físico
 
-> **Use o modo debug.** O `AndroidManifest.xml` principal (`android/app/src/main/`) ainda **não declara** a permissão `INTERNET`; ela só existe nos manifests de `debug` e `profile`. Um APK de release instalado hoje não consegue acessar o Supabase.
+> **Use o modo debug.** O build de release ainda não tem assinatura própria (veja [Build de produção](#build-de-produção-aab)).
 
 1. No celular, ative as **Opções do desenvolvedor** (Configurações > Sobre o telefone > toque várias vezes em "Número da versão").
 2. Em Opções do desenvolvedor, ative a **Depuração USB**.
@@ -388,10 +388,9 @@ Decisões principais:
 **Ainda não há keystore de release configurada** (issue [#57](https://github.com/Projetos-Moveis-II-2026-2/grupo-04/issues/57)), portanto o `.aab` de produção **não está pronto**. Hoje:
 
 - `android/app/build.gradle.kts` assina o build `release` com a chave de debug (há um `TODO` no arquivo);
-- não existe `key.properties` nem arquivo `.jks` (ambos estão no `.gitignore` do Android e nunca devem ser versionados);
-- o manifest principal não declara a permissão `INTERNET`, necessária para o app acessar o Supabase em release.
+- não existe `key.properties` nem arquivo `.jks` (ambos estão no `.gitignore` do Android e nunca devem ser versionados).
 
-O comando previsto na issue é `flutter build appbundle --release`, mas ele só deve ser considerado válido depois que a assinatura de release e a permissão forem configuradas. Para testar em um aparelho agora, use o APK de debug descrito em [Como executar](#como-executar).
+O comando previsto na issue é `flutter build appbundle --release`, mas ele só deve ser considerado válido depois que a assinatura de release for configurada. Para testar em um aparelho agora, use o APK de debug descrito em [Como executar](#como-executar).
 
 ---
 
