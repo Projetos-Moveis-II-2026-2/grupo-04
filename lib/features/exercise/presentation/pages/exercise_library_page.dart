@@ -9,8 +9,6 @@ import 'package:olimpus/core/widgets/app_error_widget.dart';
 
 import '../providers/exercise_providers.dart';
 import '../widgets/exercise_card.dart';
-import '../widgets/exercise_filters_bar.dart';
-import '../widgets/exercise_library_skeleton.dart';
 import '../widgets/muscle_group_filter.dart';
 
 class ExerciseLibraryPage extends ConsumerStatefulWidget {
@@ -79,33 +77,18 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
 
           const SizedBox(height: 8),
 
-          // Equipamento, nível, contador e limpar filtros
-          const ExerciseFiltersBar(),
-
           // Lista
           Expanded(
             child: exercisesAsync.when(
               data: (exercises) {
                 if (exercises.isEmpty) {
-                  final hasFilters =
-                      ref.watch(activeExerciseFilterCountProvider) > 0;
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Nenhum exercício encontrado.'),
-                        if (hasFilters)
-                          TextButton(
-                            onPressed: () => resetExerciseFilters(ref),
-                            child: const Text('Limpar filtros'),
-                          ),
-                      ],
-                    ),
+                  return const Center(
+                    child: Text('Nenhum exercício encontrado.'),
                   );
                 }
                 return ListView.builder(
                   scrollCacheExtent: const ScrollCacheExtent.pixels(1500), // Pre-caches elements that are 1500 pixels away from the viewport (Lazy Image Loading optimized)
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.all(16),
                   itemCount: exercises.length,
                   itemBuilder: (context, index) {
                     final exercise = exercises[index];
@@ -121,7 +104,7 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
                   },
                 );
               },
-              loading: () => const ExerciseLibrarySkeleton(),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => AppErrorWidget(
                 error: error,
                 stackTrace: stack,

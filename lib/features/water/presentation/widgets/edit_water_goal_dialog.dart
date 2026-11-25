@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/constants/app_constants.dart';
-import '../../../profile/presentation/providers/profile_providers.dart';
-import '../../domain/water_goal_calculator.dart';
 import '../providers/water_providers.dart';
 
 /// Modal para visualização e alteração da meta diária de consumo de água.
@@ -27,7 +24,7 @@ class _EditWaterGoalDialogState extends ConsumerState<EditWaterGoalDialog> {
   late final TextEditingController _controller;
   final _formKey = GlobalKey<FormState>();
 
-  static const _presets = AppConstants.waterGoalPresets;
+  static const _presets = [1500, 2000, 2500, 3000];
 
   @override
   void initState() {
@@ -42,19 +39,9 @@ class _EditWaterGoalDialogState extends ConsumerState<EditWaterGoalDialog> {
     super.dispose();
   }
 
-  String _formatWeight(double weight) {
-    if (weight % 1 == 0) {
-      return weight.toInt().toString();
-    }
-    return weight.toString();
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final profileAsync = ref.watch(userProfileProvider);
-    final weightKg = profileAsync.value?.bodyWeightKg;
-    final suggestion = WaterGoalCalculator.calculateSuggestion(weightKg);
 
     return AlertDialog(
       title: const Row(
@@ -92,48 +79,6 @@ class _EditWaterGoalDialogState extends ConsumerState<EditWaterGoalDialog> {
                 );
               }).toList(),
             ),
-            if (suggestion != null && weightKg != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.5,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.lightbulb_outline,
-                      size: 20,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Sugestão para ${_formatWeight(weightKg)} kg: $suggestion ml',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _controller.text = suggestion.toString();
-                        });
-                      },
-                      child: const Text('Aplicar'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             const SizedBox(height: 20),
             TextFormField(
               controller: _controller,
@@ -147,11 +92,11 @@ class _EditWaterGoalDialogState extends ConsumerState<EditWaterGoalDialog> {
               ),
               validator: (val) {
                 final amount = int.tryParse(val ?? '');
-                if (amount == null || amount < AppConstants.minWaterGoalMl) {
-                  return 'A meta mínima recomendada é ${AppConstants.minWaterGoalMl} ml';
+                if (amount == null || amount < 500) {
+                  return 'A meta mínima recomendada é 500 ml';
                 }
-                if (amount > AppConstants.maxWaterGoalMl) {
-                  return 'A meta máxima permitida é ${AppConstants.maxWaterGoalMl} ml';
+                if (amount > 10000) {
+                  return 'A meta máxima permitida é 10.000 ml';
                 }
                 return null;
               },
@@ -169,7 +114,6 @@ class _EditWaterGoalDialogState extends ConsumerState<EditWaterGoalDialog> {
             if (_formKey.currentState?.validate() ?? false) {
               final newGoal = int.parse(_controller.text);
               await ref.read(dailyWaterGoalProvider.notifier).setGoal(newGoal);
-              ref.invalidate(userProfileProvider);
               if (context.mounted) {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(

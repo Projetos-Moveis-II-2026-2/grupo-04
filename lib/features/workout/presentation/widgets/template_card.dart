@@ -39,15 +39,11 @@ class TemplateCard extends StatelessWidget {
     required this.template,
     required this.onEdit,
     required this.onDelete,
-    this.onStart,
   });
 
   final WorkoutTemplateEntity template;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-
-  /// Inicia uma sessão de execução a partir da ficha (null oculta o botão).
-  final VoidCallback? onStart;
 
   @override
   Widget build(BuildContext context) {
@@ -156,14 +152,6 @@ class TemplateCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  if (onStart != null && exercises.isNotEmpty)
-                    FilledButton.icon(
-                      key: ValueKey('start-${template.id}'),
-                      onPressed: onStart,
-                      icon: const Icon(Icons.play_arrow, size: 18),
-                      label: const Text('Iniciar treino'),
-                    ),
                 ],
               ),
               if (exercises.isNotEmpty) ...[
