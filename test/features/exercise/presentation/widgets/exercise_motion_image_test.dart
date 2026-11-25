@@ -8,6 +8,8 @@ import 'package:olimpus/features/exercise/presentation/widgets/exercise_motion_i
 
 const _catalog =
     'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Flyes';
+const _jsDelivrLegacy =
+    'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Dumbbell_Flyes';
 const _optimized =
     '${ApiEndpoints.supabaseUrl}/storage/v1/object/public/exercise-media/v1/Dumbbell_Flyes';
 
@@ -32,18 +34,21 @@ Iterable<String> _imageUrls(WidgetTester tester) => tester
 void main() {
   final catalogExercise = _exercise('$_catalog/0.jpg,$_catalog/1.jpg');
 
-  testWidgets('seleciona o WebP animado nos detalhes', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(home: ExerciseDetailsPage(exercise: catalogExercise)),
-    );
-    expect(_imageUrls(tester), ['$_optimized/motion.webp']);
-    final gallery = tester.widget<PageView>(find.byType(PageView));
-    expect(gallery.childrenDelegate.estimatedChildCount, 3);
+  testWidgets(
+    'seleciona o WebP animado nos detalhes (GitHub legado do Drift)',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: ExerciseDetailsPage(exercise: catalogExercise)),
+      );
+      expect(_imageUrls(tester), ['$_optimized/motion.webp']);
+      final gallery = tester.widget<PageView>(find.byType(PageView));
+      expect(gallery.childrenDelegate.estimatedChildCount, 3);
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(const Duration(seconds: 2));
-    expect(tester.takeException(), isNull);
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 2));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('seleciona apenas a miniatura no card', (tester) async {
     await tester.pumpWidget(
@@ -95,21 +100,50 @@ void main() {
     expect(gallery.childrenDelegate.estimatedChildCount, 2);
   });
 
-  testWidgets('tenta o primeiro JPG quando o WebP está indisponível', (
+  testWidgets(
+    'tenta o primeiro JPG do bucket quando o WebP está indisponível',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: ExerciseDetailsPage(exercise: catalogExercise)),
+      );
+      // O cliente HTTP padrão do flutter_test rejeita requisições externas.
+      await tester.pump();
+      expect(_imageUrls(tester), contains('$_optimized/0.jpg'));
+      await tester.pump();
+      expect(find.byIcon(Icons.image_not_supported), findsOneWidget);
+    },
+  );
+
+  testWidgets('normaliza a entrada relativa do dataset para o bucket', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      MaterialApp(home: ExerciseDetailsPage(exercise: catalogExercise)),
+    final relativeExercise = _exercise(
+      'Dumbbell_Flyes/0.jpg,Dumbbell_Flyes/1.jpg',
     );
-    // O cliente HTTP padrão do flutter_test rejeita requisições externas.
-    await tester.pump();
-    expect(
-      _imageUrls(tester),
-      contains(
-        'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/Dumbbell_Flyes/0.jpg',
+    await tester.pumpWidget(
+      MaterialApp(home: ExerciseDetailsPage(exercise: relativeExercise)),
+    );
+    expect(_imageUrls(tester), ['$_optimized/motion.webp']);
+    final gallery = tester.widget<PageView>(find.byType(PageView));
+    expect(gallery.childrenDelegate.estimatedChildCount, 3);
+  });
+
+  testWidgets('normaliza a entrada legada do jsDelivr para o bucket', (
+    tester,
+  ) async {
+    final jsDelivrExercise = _exercise(
+      '$_jsDelivrLegacy/0.jpg,$_jsDelivrLegacy/1.jpg',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ExerciseCard(exercise: jsDelivrExercise)),
       ),
     );
-    await tester.pump();
-    expect(find.byIcon(Icons.image_not_supported), findsOneWidget);
+    expect(_imageUrls(tester), ['$_optimized/thumbnail.webp']);
+
+    await tester.pumpWidget(
+      MaterialApp(home: ExerciseDetailsPage(exercise: jsDelivrExercise)),
+    );
+    expect(_imageUrls(tester), ['$_optimized/motion.webp']);
   });
 }

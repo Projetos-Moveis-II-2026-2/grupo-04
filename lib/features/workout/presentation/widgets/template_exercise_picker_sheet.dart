@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:olimpus/core/constants/exercise_media.dart';
 import 'package:olimpus/features/workout/domain/entities/catalog_exercise.dart';
 import 'package:olimpus/features/workout/presentation/providers/workout_template_providers.dart';
 
@@ -383,7 +384,7 @@ class _ExerciseThumbnail extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: CachedNetworkImage(
-        imageUrl: imageUrl!,
+        imageUrl: ExerciseMedia.normalize(imageUrl!),
         width: 48,
         height: 48,
         fit: BoxFit.cover,

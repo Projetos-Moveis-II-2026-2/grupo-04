@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/exercise_media.dart';
 import '../../domain/entities/exercise.dart';
 import '../providers/exercise_providers.dart';
 import '../utils/exercise_labels.dart';
@@ -160,7 +161,9 @@ class _ImageGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final urls = exercise.imageUrlList;
+    final urls = exercise.imageUrlList
+        .map(ExerciseMedia.normalize)
+        .toList(growable: false);
     final motionUrl = ExerciseMotionImage.motionUrlFor(
       exercise.externalId,
       urls,
