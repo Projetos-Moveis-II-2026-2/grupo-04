@@ -129,7 +129,7 @@ String _buildSql(String json) {
 -- 20260906231952_seed_exercises.sql já inseriu os 876 exercícios antes desta.
 DO $_blockDollarTag
 DECLARE
-  n INTEGER;
+  updated_count INTEGER;
 BEGIN
   ALTER TABLE public.exercise_library
     ADD COLUMN IF NOT EXISTS name_en TEXT,
@@ -139,8 +139,8 @@ BEGIN
   SET name_en = replace(replace(name, chr(157), ''), chr(13), ''),
       instructions_en = ARRAY(
         SELECT replace(replace(x, chr(157), ''), chr(13), '')
-        FROM unnest(instructions) WITH ORDINALITY AS u(x, n)
-        ORDER BY n
+        FROM unnest(instructions) WITH ORDINALITY AS u(x, ordinal)
+        ORDER BY u.ordinal
       )
   WHERE name_en IS NULL;
 
@@ -157,9 +157,10 @@ $json
 $ptDollarTag::jsonb) AS t
   WHERE e.external_id = t.key;
 
-  GET DIAGNOSTICS n = ROW_COUNT;
-  IF n <> $expectedExerciseCount THEN
-    RAISE EXCEPTION 'exercise_library pt-BR: esperado $expectedExerciseCount linhas, atualizadas %', n;
+  GET DIAGNOSTICS updated_count = ROW_COUNT;
+  IF updated_count <> $expectedExerciseCount THEN
+    RAISE EXCEPTION 'exercise_library pt-BR: esperado $expectedExerciseCount linhas, atualizadas %',
+      updated_count;
   END IF;
   COMMENT ON COLUMN public.exercise_library.name_en IS
     'Nome original em inglês (free-exercise-db), preservado após a tradução do catálogo para pt-BR (#124).';
