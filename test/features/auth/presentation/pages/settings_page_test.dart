@@ -69,4 +69,42 @@ void main() {
       expect(find.text('atleta@olimpus.com'), findsOneWidget);
     },
   );
+
+  testWidgets('configura tempo padrão e início automático do descanso (#41)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentUserProvider.overrideWithValue(testUser),
+          userProfileProvider.overrideWith((ref) async => null),
+        ],
+        child: const MaterialApp(home: SettingsPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tile = find.byKey(const ValueKey('settings-rest-seconds'));
+    await tester.scrollUntilVisible(tile, 100);
+    expect(find.text('90 segundos'), findsOneWidget);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    // Arrasta até o fim: limitado a 180 s.
+    await tester.drag(
+      find.byKey(const ValueKey('rest-seconds-slider')),
+      const Offset(600, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('180 segundos'), findsOneWidget);
+    expect(prefs.getInt('rest_timer_seconds'), 180);
+
+    await tester.tap(find.text('Iniciar descanso ao concluir série'));
+    await tester.pumpAndSettle();
+    expect(prefs.getBool('rest_timer_auto_start'), isFalse);
+  });
 }

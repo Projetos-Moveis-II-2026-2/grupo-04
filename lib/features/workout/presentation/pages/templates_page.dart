@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:olimpus/core/utils/ui_feedback_extension.dart';
+import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
+import 'package:olimpus/features/workout/domain/entities/workout_template_entity.dart';
+import 'package:olimpus/features/workout/presentation/providers/workout_session_providers.dart';
 import 'package:olimpus/features/workout/presentation/providers/workout_template_providers.dart';
 import 'package:olimpus/features/workout/presentation/widgets/template_card.dart';
 
@@ -117,6 +121,7 @@ class TemplatesListView extends ConsumerWidget {
               template: tpl,
               onEdit: () =>
                   context.push('/templates/${tpl.id}/edit', extra: tpl),
+              onStart: () => _startSession(context, ref, tpl),
               onDelete: () async {
                 final ok = await ref
                     .read(workoutTemplateActionNotifierProvider.notifier)
@@ -132,6 +137,24 @@ class TemplatesListView extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+Future<void> _startSession(
+  BuildContext context,
+  WidgetRef ref,
+  WorkoutTemplateEntity template,
+) async {
+  final user = ref.read(currentUserProvider);
+  if (user == null) return;
+  try {
+    final sessionId = await ref.read(startWorkoutSessionUseCaseProvider)(
+      userId: user.id,
+      template: template,
+    );
+    if (context.mounted) await context.push('/session/$sessionId');
+  } on Object catch (e) {
+    if (context.mounted) context.showErrorSnackBar(e);
   }
 }
 

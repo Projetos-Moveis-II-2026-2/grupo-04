@@ -5097,6 +5097,314 @@ typedef $$WorkoutTemplatesTableProcessedTableManager =
       WorkoutTemplate,
       PrefetchHooks Function()
     >;
+typedef $$TemplateExercisesTableCreateCompanionBuilder =
+    TemplateExercisesCompanion Function({
+      required String id,
+      Value<String?> remoteId,
+      required String templateId,
+      required String exerciseId,
+      Value<int> sortOrder,
+      Value<int> targetSets,
+      Value<int?> targetReps,
+      Value<bool> synced,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$TemplateExercisesTableUpdateCompanionBuilder =
+    TemplateExercisesCompanion Function({
+      Value<String> id,
+      Value<String?> remoteId,
+      Value<String> templateId,
+      Value<String> exerciseId,
+      Value<int> sortOrder,
+      Value<int> targetSets,
+      Value<int?> targetReps,
+      Value<bool> synced,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$TemplateExercisesTableFilterComposer
+    extends Composer<_$AppDatabase, $TemplateExercisesTable> {
+  $$TemplateExercisesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get exerciseId => $composableBuilder(
+    column: $table.exerciseId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetReps => $composableBuilder(
+    column: $table.targetReps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get synced => $composableBuilder(
+    column: $table.synced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TemplateExercisesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TemplateExercisesTable> {
+  $$TemplateExercisesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get exerciseId => $composableBuilder(
+    column: $table.exerciseId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetReps => $composableBuilder(
+    column: $table.targetReps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get synced => $composableBuilder(
+    column: $table.synced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TemplateExercisesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TemplateExercisesTable> {
+  $$TemplateExercisesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
+  GeneratedColumn<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get exerciseId => $composableBuilder(
+    column: $table.exerciseId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetReps => $composableBuilder(
+    column: $table.targetReps,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get synced =>
+      $composableBuilder(column: $table.synced, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TemplateExercisesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TemplateExercisesTable,
+          TemplateExerciseRow,
+          $$TemplateExercisesTableFilterComposer,
+          $$TemplateExercisesTableOrderingComposer,
+          $$TemplateExercisesTableAnnotationComposer,
+          $$TemplateExercisesTableCreateCompanionBuilder,
+          $$TemplateExercisesTableUpdateCompanionBuilder,
+          (
+            TemplateExerciseRow,
+            BaseReferences<
+              _$AppDatabase,
+              $TemplateExercisesTable,
+              TemplateExerciseRow
+            >,
+          ),
+          TemplateExerciseRow,
+          PrefetchHooks Function()
+        > {
+  $$TemplateExercisesTableTableManager(
+    _$AppDatabase db,
+    $TemplateExercisesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TemplateExercisesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TemplateExercisesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TemplateExercisesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<String> templateId = const Value.absent(),
+                Value<String> exerciseId = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> targetSets = const Value.absent(),
+                Value<int?> targetReps = const Value.absent(),
+                Value<bool> synced = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TemplateExercisesCompanion(
+                id: id,
+                remoteId: remoteId,
+                templateId: templateId,
+                exerciseId: exerciseId,
+                sortOrder: sortOrder,
+                targetSets: targetSets,
+                targetReps: targetReps,
+                synced: synced,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> remoteId = const Value.absent(),
+                required String templateId,
+                required String exerciseId,
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> targetSets = const Value.absent(),
+                Value<int?> targetReps = const Value.absent(),
+                Value<bool> synced = const Value.absent(),
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => TemplateExercisesCompanion.insert(
+                id: id,
+                remoteId: remoteId,
+                templateId: templateId,
+                exerciseId: exerciseId,
+                sortOrder: sortOrder,
+                targetSets: targetSets,
+                targetReps: targetReps,
+                synced: synced,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TemplateExercisesTable, TemplateExerciseRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $TemplateExercisesTable,
+                    TemplateExerciseRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TemplateExercisesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TemplateExercisesTable,
+      TemplateExerciseRow,
+      $$TemplateExercisesTableFilterComposer,
+      $$TemplateExercisesTableOrderingComposer,
+      $$TemplateExercisesTableAnnotationComposer,
+      $$TemplateExercisesTableCreateCompanionBuilder,
+      $$TemplateExercisesTableUpdateCompanionBuilder,
+      (
+        TemplateExerciseRow,
+        BaseReferences<
+          _$AppDatabase,
+          $TemplateExercisesTable,
+          TemplateExerciseRow
+        >,
+      ),
+      TemplateExerciseRow,
+      PrefetchHooks Function()
+    >;
 typedef $$ExerciseLibraryTableTableCreateCompanionBuilder =
     ExerciseLibraryTableCompanion Function({
       required String id,
@@ -6043,6 +6351,8 @@ class $AppDatabaseManager {
       $$WorkoutSessionsTableTableManager(_db, _db.workoutSessions);
   $$WorkoutTemplatesTableTableManager get workoutTemplates =>
       $$WorkoutTemplatesTableTableManager(_db, _db.workoutTemplates);
+  $$TemplateExercisesTableTableManager get templateExercises =>
+      $$TemplateExercisesTableTableManager(_db, _db.templateExercises);
   $$ExerciseLibraryTableTableTableManager get exerciseLibraryTable =>
       $$ExerciseLibraryTableTableTableManager(_db, _db.exerciseLibraryTable);
   $$WaterIntakeTableTableManager get waterIntake =>
