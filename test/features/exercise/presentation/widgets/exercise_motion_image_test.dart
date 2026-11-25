@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olimpus/core/constants/api_endpoints.dart';
@@ -113,6 +114,26 @@ void main() {
       expect(find.byIcon(Icons.image_not_supported), findsOneWidget);
     },
   );
+
+  testWidgets('a galeria mostra o segundo quadro do bucket sem duplicar', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: ExerciseDetailsPage(exercise: catalogExercise)),
+    );
+    final pager = find.byType(PageView);
+    for (var page = 0; page < 2; page++) {
+      await tester.drag(pager, const Offset(-600, 0));
+      await tester.pump(const Duration(seconds: 1));
+    }
+    final gallery = tester
+        .widgetList<CachedNetworkImage>(find.byType(CachedNetworkImage))
+        .map((image) => image.imageUrl);
+    expect(gallery, ['$_optimized/1.jpg']);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 2));
+  });
 
   testWidgets('normaliza a entrada relativa do dataset para o bucket', (
     tester,
