@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:olimpus/core/widgets/loading_overlay.dart';
 
 import '../../domain/entities/app_user.dart';
 import '../providers/auth_notifier.dart';
@@ -91,80 +90,73 @@ class _DeleteAccountPageState extends ConsumerState<DeleteAccountPage> {
 
     final isLoading = authState is AsyncLoading;
 
-    return LoadingOverlay(
-      isLoading: isLoading,
-      message: 'Excluindo conta...',
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Excluir Conta')),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 64,
+    return Scaffold(
+      appBar: AppBar(title: const Text('Excluir Conta')),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 64,
+                color: colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Zona de Perigo',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: colorScheme.error,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Zona de Perigo',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: colorScheme.error,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Ao excluir sua conta, todos os seus dados serão '
-                  'permanentemente removidos. Esta ação não pode ser desfeita.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Confirme sua senha',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Ao excluir sua conta, todos os seus dados serão '
+                'permanentemente removidos. Esta ação não pode ser desfeita.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Confirme sua senha',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
-                  ),
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Informe sua senha'
-                      : null,
-                ),
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: colorScheme.error,
-                    foregroundColor: colorScheme.onError,
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  onPressed: isLoading ? null : _handleDelete,
-                  icon: isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.delete_forever),
-                  label: Text(
-                    isLoading ? 'Excluindo...' : 'Excluir Minha Conta',
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
-              ],
-            ),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Informe sua senha' : null,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.error,
+                  foregroundColor: colorScheme.onError,
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: isLoading ? null : _handleDelete,
+                icon: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.delete_forever),
+                label: Text(isLoading ? 'Excluindo...' : 'Excluir Minha Conta'),
+              ),
+            ],
           ),
         ),
       ),

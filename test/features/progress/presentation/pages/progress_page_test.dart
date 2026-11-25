@@ -16,7 +16,6 @@ import 'package:olimpus/features/progress/presentation/pages/progress_page.dart'
 import 'package:olimpus/features/progress/presentation/providers/progress_providers.dart';
 import 'package:olimpus/features/progress/presentation/widgets/exercise_load_chart.dart';
 import 'package:olimpus/features/progress/presentation/widgets/exercise_selector.dart';
-import 'package:olimpus/features/progress/presentation/widgets/progress_skeletons.dart';
 
 import '../../../../helpers/pump_app.dart';
 
@@ -295,7 +294,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Evolução'), findsOneWidget);
-      expect(find.byType(ProgressPageSkeleton), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
     testWidgets(
@@ -324,7 +323,7 @@ void main() {
         await tester.pump();
 
         expect(find.byType(ExerciseSelector), findsOneWidget);
-        expect(find.byType(ExerciseLoadChartSkeleton), findsOneWidget);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
       },
     );
 

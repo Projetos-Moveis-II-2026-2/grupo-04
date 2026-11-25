@@ -17,7 +17,6 @@ import 'package:olimpus/features/water/presentation/pages/water_history_page.dar
 import 'package:olimpus/features/water/presentation/providers/water_providers.dart';
 import 'package:olimpus/features/water/presentation/widgets/daily_water_total_card.dart';
 import 'package:olimpus/features/water/presentation/widgets/today_water_entries_list.dart';
-import 'package:olimpus/features/water/presentation/widgets/water_history_skeletons.dart';
 import 'package:olimpus/features/water/presentation/widgets/weekly_water_chart.dart';
 
 import 'package:olimpus/core/providers.dart';
@@ -383,9 +382,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Hidratação'), findsOneWidget);
-      expect(find.byType(DailyWaterTotalCardSkeleton), findsOneWidget);
-      expect(find.byType(WeeklyWaterChartSkeleton), findsOneWidget);
-      expect(find.byType(TodayWaterEntriesListSkeleton), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
     });
 
     testWidgets('exibe mensagens de erro quando streams falham', (

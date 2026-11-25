@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:olimpus/core/constants/app_constants.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_notifier.dart';
-import 'package:olimpus/features/water/domain/water_goal_calculator.dart';
 
 import '../../domain/entities/user_profile.dart';
 import '../providers/profile_providers.dart';
@@ -32,54 +30,24 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   late final TextEditingController _weightController;
   late final TextEditingController _waterGoalController;
   ExperienceLevel _selectedExperience = ExperienceLevel.beginner;
-  bool _hasManuallyEditedGoal = false;
 
-  static const _waterPresets = AppConstants.waterGoalPresets;
+  static const _waterPresets = [1500, 2000, 2500, 3000];
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
     _weightController = TextEditingController();
-    _waterGoalController = TextEditingController(
-      text: AppConstants.dailyWaterGoalMl.toString(),
-    );
-    _weightController.addListener(_onWeightChanged);
+    _waterGoalController = TextEditingController(text: '2000');
   }
 
   @override
   void dispose() {
-    _weightController.removeListener(_onWeightChanged);
     _pageController.dispose();
     _nameController.dispose();
     _weightController.dispose();
     _waterGoalController.dispose();
     super.dispose();
-  }
-
-  void _onWeightChanged() {
-    final weight = _parsedWeight;
-    final suggestion = WaterGoalCalculator.calculateSuggestion(weight);
-    if (suggestion != null && !_hasManuallyEditedGoal) {
-      _waterGoalController.text = suggestion.toString();
-    }
-    setState(() {});
-  }
-
-  double? get _parsedWeight {
-    final text = _weightController.text.trim().replaceAll(',', '.');
-    return double.tryParse(text);
-  }
-
-  int? get _currentWaterSuggestion {
-    return WaterGoalCalculator.calculateSuggestion(_parsedWeight);
-  }
-
-  String _formatWeight(double weight) {
-    if (weight % 1 == 0) {
-      return weight.toInt().toString();
-    }
-    return weight.toString();
   }
 
   void _goToNextStep() {
@@ -334,9 +302,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   Widget _buildStep2WaterGoal(ThemeData theme, ColorScheme colorScheme) {
-    final suggestion = _currentWaterSuggestion;
-    final weight = _parsedWeight;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Form(
@@ -365,53 +330,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'A água é fundamental para o desempenho muscular e recuperação. Escolha uma meta sugerida ou digite um valor entre ${AppConstants.minWaterGoalMl} e ${AppConstants.maxWaterGoalMl} ml.',
+              'A água é fundamental para o desempenho muscular e recuperação. Escolha uma meta sugerida ou digite um valor entre 500 e 5000 ml.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
-            if (suggestion != null && weight != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.5,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colorScheme.outlineVariant),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.lightbulb_outline,
-                      color: colorScheme.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Sugestão para ${_formatWeight(weight)} kg: $suggestion ml',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _waterGoalController.text = suggestion.toString();
-                        });
-                      },
-                      child: const Text('Aceitar'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             const SizedBox(height: 24),
             Text(
               'Metas sugeridas:',
@@ -433,7 +356,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   onSelected: (selected) {
                     if (selected) {
                       setState(() {
-                        _hasManuallyEditedGoal = true;
                         _waterGoalController.text = preset.toString();
                       });
                     }
@@ -444,10 +366,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             const SizedBox(height: 24),
             TextFormField(
               controller: _waterGoalController,
-              onChanged: (_) {
-                _hasManuallyEditedGoal = true;
-                setState(() {});
-              },
               decoration: const InputDecoration(
                 labelText: 'Meta diária personalizada *',
                 hintText: 'Ex: 2200',
@@ -462,9 +380,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   return 'Informe a meta de água';
                 }
                 final amount = int.tryParse(value);
-                if (amount == null ||
-                    !WaterGoalCalculator.isValidGoal(amount)) {
-                  return 'A meta de água deve estar entre ${AppConstants.minWaterGoalMl} e ${AppConstants.maxWaterGoalMl} ml';
+                if (amount == null || amount < 500 || amount > 5000) {
+                  return 'A meta de água deve estar entre 500 e 5000 ml';
                 }
                 return null;
               },

@@ -23,7 +23,6 @@ import '../features/workout/presentation/pages/free_workout_page.dart';
 import '../features/workout/presentation/pages/template_form_page.dart';
 import '../features/workout/presentation/pages/templates_page.dart';
 import '../features/workout/presentation/pages/workout_list_page.dart';
-import '../features/workout/presentation/pages/workout_session_page.dart';
 import 'scaffold_with_nav_bar.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -237,11 +236,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/templates/new',
         builder: (context, state) => const TemplateFormPage(),
-      ),
-      GoRoute(
-        path: '/session/:id',
-        builder: (context, state) =>
-            WorkoutSessionPage(sessionId: state.pathParameters['id'] ?? ''),
       ),
       GoRoute(
         path: '/templates/:id/edit',

@@ -153,7 +153,6 @@ async function handle(
       .ilike("name", `%${name}%`)
       .limit(1);
     const m = match?.[0];
-    const image = m && Array.isArray(m.image_urls) ? m.image_urls[0] : null;
     substitutes.push({
       name,
       equipment: (s.equipment ?? (m?.equipment as string | null)) || null,
@@ -161,11 +160,10 @@ async function handle(
       matched_id: m ? (m.id as string) : null,
       matched_external_id: m ? (m.external_id as string) : null,
       matched_name: m ? (m.name as string) : null,
-      image_url: typeof image === "string"
-        ? (/^https?:\/\//.test(image)
-          ? image
-          : `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${image}`)
-        : null,
+      image_url:
+        m && Array.isArray(m.image_urls) && m.image_urls.length > 0
+          ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${m.image_urls[0]}`
+          : null,
     });
   }
 
