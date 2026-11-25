@@ -51,6 +51,8 @@ void main() {
       test('mantém URLs http(s) de outros destinos', () {
         const url = 'https://example.com/imagem.jpg';
         expect(ExerciseMedia.normalize(url), url);
+        const insecure = 'http://example.com/imagem.jpg';
+        expect(ExerciseMedia.normalize(insecure), insecure);
       });
 
       test('mantém caminhos locais de assets', () {

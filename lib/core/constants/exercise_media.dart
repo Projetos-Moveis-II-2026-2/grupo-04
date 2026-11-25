@@ -45,7 +45,7 @@ abstract final class ExerciseMedia {
     if (url.startsWith(_legacyJsDelivr)) {
       return frameUrl(url.substring(_legacyJsDelivr.length));
     }
-    if (url.startsWith('http')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
     if (url.startsWith('assets/')) return url;
     return frameUrl(url);
   }
