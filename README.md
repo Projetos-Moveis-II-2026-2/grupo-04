@@ -16,9 +16,10 @@ Projeto da disciplina **Programação para Dispositivos Móveis II** (Grupo 4).
 6. [Supabase local, migrações e Edge Functions](#supabase-local-migrações-e-edge-functions)
 7. [Geração de código, testes e CI](#geração-de-código-testes-e-ci)
 8. [Arquitetura](#arquitetura)
-9. [Build de produção (.aab)](#build-de-produção-aab)
-10. [Como contribuir](#como-contribuir)
-11. [Documentação](#documentação)
+9. [Imagens de exercícios (bucket `exercise-media`)](#imagens-de-exercícios-bucket-exercise-media)
+10. [Build de produção (.aab)](#build-de-produção-aab)
+11. [Como contribuir](#como-contribuir)
+12. [Documentação](#documentação)
 
 ---
 
@@ -398,6 +399,68 @@ Decisões principais:
 ├── docs/                          # Documentação do projeto
 ├── android/ ios/ web/ linux/ macos/ windows/
 └── .github/workflows/             # CI (ci.yml) e testes de integração (integration.yml)
+```
+
+---
+
+## Imagens de exercícios (bucket `exercise-media`)
+
+As imagens do catálogo são servidas pelo bucket público `exercise-media` do Supabase. O bucket é criado pela migration `20261124000000_exercise_media.sql` e passa a aceitar WebP e JPEG em `20261125010000_exercise_media_frames.sql`. O app monta as URLs em `lib/core/constants/exercise_media.dart`.
+
+Estrutura dos objetos, em que `<id>` é o `id`/`external_id` do catálogo (por exemplo, `3_4_Sit-Up`):
+
+| Caminho no bucket | Conteúdo |
+|-------------------|----------|
+| `v1/<id>/0.jpg` | Primeiro quadro original (JPG). |
+| `v1/<id>/1.jpg` | Segundo quadro original (JPG), quando o exercício tem dois. |
+| `v1/<id>/thumbnail.webp` | Miniatura otimizada já existente. |
+| `v1/<id>/motion.webp` | Animação otimizada já existente. |
+
+O caminho relativo do seed (`<id>/0.jpg`) corresponde à chave `v1/<id>/0.jpg` no bucket. Os WebP existentes foram gerados por [`tool/generate_exercise_media.dart`](tool/generate_exercise_media.dart) e ficam na mesma árvore `v1/`.
+
+### Preparar o staging
+
+Na raiz do repositório vinculado ao Supabase, monte uma árvore local `v1/` com os JPGs listados em `supabase/seed/exercises.json`. O exemplo usa `jq` para ler o seed e mantém os WebP que já estão no bucket.
+
+```bash
+REPO=$PWD
+STAGING=$(mktemp -d)
+FREE_EXERCISE_DB=/caminho/para/free-exercise-db/exercises
+
+mkdir -p "$STAGING/v1"
+
+while IFS= read -r rel; do
+  mkdir -p "$STAGING/v1/$(dirname "$rel")"
+  cp "$FREE_EXERCISE_DB/$rel" "$STAGING/v1/$rel"
+done < <(jq -r '.[].images[]' supabase/seed/exercises.json)
+```
+
+### Enviar para o bucket
+
+Confirme que o bucket já aceita `image/jpeg` antes do upload. Na raiz do staging (o diretório que contém `v1/`), envie a árvore inteira:
+
+```bash
+(cd "$STAGING" && supabase storage cp --workdir "$REPO" --experimental --remote -r -j 8 --cache-control max-age=31536000 v1 ss:///exercise-media)
+```
+
+O destino `ss:///exercise-media` é a raiz do bucket, então os objetos chegam como `v1/<id>/...`; `-r` envia a árvore, `-j 8` paraleliza e `--cache-control max-age=31536000` define cache de um ano.
+
+O upload precisa acontecer **antes** da migration: [`20261125010000_exercise_media_frames.sql`](supabase/migrations/20261125010000_exercise_media_frames.sql) só reescreve `image_urls` de um exercício quando todos os quadros dele já existem em `storage.objects`. Sem os objetos, essa parte permanece no-op. Depois do merge, com o upload concluído, aplique a migration no projeto remoto com `supabase db push`.
+
+### `EXERCISE_MEDIA_BASE_URL`
+
+A constante `ExerciseMedia.baseUrl` lê `EXERCISE_MEDIA_BASE_URL` em tempo de compilação e usa como padrão `${ApiEndpoints.supabaseUrl}/storage/v1/object/public/exercise-media/v1`. A configuração vale para as URLs geradas pelo app. As URLs gravadas no banco e retornadas pela RPC usam a base de produção definida na migration.
+
+```bash
+flutter run --dart-define=EXERCISE_MEDIA_BASE_URL=https://<project-ref>.supabase.co/storage/v1/object/public/exercise-media/v1
+```
+
+Para conferir a publicação, teste um objeto real (a raiz do prefixo não é um objeto) e espere **HTTP 200**:
+
+```bash
+BASE='https://<project-ref>.supabase.co/storage/v1/object/public/exercise-media/v1'
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/3_4_Sit-Up/0.jpg"          # 200
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/3_4_Sit-Up/thumbnail.webp" # 200
 ```
 
 ---

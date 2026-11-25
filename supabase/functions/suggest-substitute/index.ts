@@ -182,7 +182,7 @@ async function handle(
       image_url: typeof image === "string"
         ? (/^https?:\/\//.test(image)
           ? image
-          : `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${image}`)
+          : `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/exercise-media/v1/${image}`)
         : null,
     });
   }

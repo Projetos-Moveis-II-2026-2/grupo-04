@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:olimpus/core/constants/exercise_media.dart';
 import 'package:olimpus/features/exercise/data/datasources/substitute_datasource.dart';
 import 'package:olimpus/features/exercise/presentation/providers/substitution_provider.dart';
 import 'package:olimpus/features/exercise/presentation/utils/exercise_labels.dart';
@@ -129,7 +130,7 @@ class _SubstituteCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: suggestion.imageUrl != null
             ? CachedNetworkImage(
-                imageUrl: suggestion.imageUrl!,
+                imageUrl: ExerciseMedia.normalize(suggestion.imageUrl!),
                 width: 56,
                 height: 56,
                 fit: BoxFit.cover,
