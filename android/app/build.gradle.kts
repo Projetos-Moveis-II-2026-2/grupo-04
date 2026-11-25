@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,8 +7,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Credenciais de assinatura de release. O arquivo android/key.properties e o
+// keystore (.jks) ficam fora do versionamento (veja o README).
+val keyPropertiesFile = rootProject.file("key.properties")
+val keyProperties = Properties()
+if (keyPropertiesFile.exists()) {
+    keyPropertiesFile.inputStream().use { keyProperties.load(it) }
+}
+
 android {
-    namespace = "com.example.olimpus"
+    namespace = "br.unitins.olimpus"
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
@@ -21,22 +31,65 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.olimpus"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "br.unitins.olimpus"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            if (keyPropertiesFile.exists()) {
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+                storePassword = keyProperties.getProperty("storePassword")
+                keyProperties.getProperty("storeFile")?.let { storeFile = file(it) }
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Nunca assina com a chave de debug. Sem key.properties, a validacao
+            // abaixo interrompe apenas as tarefas de release que forem executadas.
+            signingConfig = signingConfigs.getByName("release")
         }
+    }
+}
+
+// Falha com mensagem clara se uma tarefa de release for executada sem a
+// configuracao de assinatura. Debug, analyze e testes nao sao afetados.
+gradle.taskGraph.whenReady {
+    val releaseTaskPattern =
+        Regex("^(assemble|bundle|package|install|sign|validateSigning).*Release.*")
+    val releaseRequested = allTasks.any {
+        it.project == project && releaseTaskPattern.matches(it.name)
+    }
+    if (!releaseRequested) return@whenReady
+
+    if (!keyPropertiesFile.exists()) {
+        throw GradleException(
+            "Assinatura de release nao configurada: o arquivo " +
+                "${keyPropertiesFile.path} nao existe. Crie android/key.properties " +
+                "com storePassword, keyPassword, keyAlias e storeFile " +
+                "(passo a passo na secao 'Build de producao (.aab)' do README). " +
+                "O build de release nao e assinado com a chave de debug.",
+        )
+    }
+    val requiredKeys = listOf("storePassword", "keyPassword", "keyAlias", "storeFile")
+    val missingKeys = requiredKeys.filter { keyProperties.getProperty(it).isNullOrBlank() }
+    if (missingKeys.isNotEmpty()) {
+        throw GradleException(
+            "key.properties incompleto: faltam as chaves ${missingKeys.joinToString()}.",
+        )
+    }
+    val keystore = file(keyProperties.getProperty("storeFile"))
+    if (!keystore.exists()) {
+        throw GradleException(
+            "O keystore indicado em storeFile nao foi encontrado. Use um caminho " +
+                "absoluto (ou relativo a android/app) para o arquivo .jks.",
+        )
     }
 }
 
