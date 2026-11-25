@@ -10,6 +10,7 @@ import 'package:olimpus/features/exercise/domain/repositories/i_exercise_reposit
 import 'package:olimpus/features/exercise/presentation/pages/exercise_library_page.dart';
 import 'package:olimpus/features/exercise/presentation/providers/exercise_providers.dart';
 import 'package:olimpus/features/exercise/presentation/widgets/exercise_card.dart';
+import 'package:olimpus/features/exercise/presentation/widgets/exercise_library_skeleton.dart';
 
 import '../../../../helpers/pump_app.dart';
 
@@ -71,7 +72,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('Biblioteca de Exercícios'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(ExerciseLibrarySkeleton), findsOneWidget);
+      expect(find.byType(ExerciseCardSkeleton), findsWidgets);
     });
 
     testWidgets(
