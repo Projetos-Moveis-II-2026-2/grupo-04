@@ -2,12 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/presentation/pages/confirmation_pending_page.dart';
+import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/home_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
-import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/reset_password_page.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
+import '../features/exercise/domain/entities/exercise.dart';
+import '../features/exercise/presentation/pages/exercise_details_page.dart';
+import '../features/exercise/presentation/pages/exercise_library_page.dart';
 import '../features/workout/domain/entities/workout_template_entity.dart';
 import '../features/workout/presentation/pages/template_form_page.dart';
 import '../features/workout/presentation/pages/templates_page.dart';
@@ -66,6 +69,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reset-password',
         builder: (context, state) => const ResetPasswordPage(),
+      ),
+      GoRoute(
+        path: '/exercises',
+        builder: (context, state) => const ExerciseLibraryPage(),
+      ),
+      GoRoute(
+        path: '/exercises/details',
+        builder: (context, state) {
+          final exercise = state.extra as Exercise;
+          return ExerciseDetailsPage(exercise: exercise);
+        },
       ),
       GoRoute(
         path: '/templates',

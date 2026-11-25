@@ -25,6 +25,11 @@ class HomePage extends ConsumerWidget {
         title: const Text('Olimpus'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.fitness_center),
+            tooltip: 'Biblioteca de Exercícios',
+            onPressed: () => context.push('/exercises'),
+          ),
+          IconButton(
             icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
             tooltip: 'Alternar tema',
             onPressed: () => ref.read(themeProvider.notifier).toggle(),
@@ -63,6 +68,12 @@ class HomePage extends ConsumerWidget {
                         ),
                     ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.fitness_center, size: 18),
+                  label: const Text('Exercícios'),
+                  onPressed: () => context.push('/exercises'),
                 ),
               ],
             ),
