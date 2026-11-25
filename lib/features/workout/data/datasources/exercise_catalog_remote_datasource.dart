@@ -27,6 +27,10 @@ class SupabaseExerciseCatalogRemoteDataSource
         .order('name')
         .limit(1000);
 
+    // Antes da migração, gravar o catálogo remoto substituiria o pt-BR pelo
+    // inglês e marcaria a revisão como aplicada. Tenta novamente na próxima abertura.
+    if (rows.any((row) => row['name_en'] == null)) return const [];
+
     final now = DateTime.now().toUtc();
     return rows
         .cast<Map<String, dynamic>>()

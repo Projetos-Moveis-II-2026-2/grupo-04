@@ -5,7 +5,7 @@
 // ai_rate_limits com exercise_id = 'assistant' (1 fallback por
 // usuário por semana, cláusula da issue #28).
 import "@supabase/functions-js/edge-runtime.d.ts";
-import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@^2";
 import { withSupabase } from "@supabase/server";
 
 const MODEL = "gemini-3.5-flash-lite";
@@ -35,6 +35,15 @@ export async function callLLM(apiKey: string, prompt: string): Promise<string> {
   const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Gemini sem texto na resposta");
   return text;
+}
+
+// Escapa os curingas do padrão LIKE para que o nome sugerido pelo LLM seja
+// buscado literalmente. A barra invertida precisa vir primeiro.
+export function escapeLike(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
 }
 
 export function buildPrompt(
@@ -104,7 +113,7 @@ async function handle(
 
   const { data: exercise, error } = await rlsClient
     .from("exercise_library")
-    .select("name, equipment, primary_muscles")
+    .select()
     .eq("id", exerciseId)
     .maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -135,7 +144,7 @@ async function handle(
   }
 
   const prompt = buildPrompt(
-    exercise.name as string,
+    (exercise.name_en ?? exercise.name) as string,
     exercise.equipment as string | null,
     (exercise.primary_muscles as string[] | null) ?? [],
   );
@@ -144,15 +153,24 @@ async function handle(
 
   // Resolve os nomes sugeridos contra o catálogo (IDs + imagem)
   const substitutes: Substitute[] = [];
-  for (const s of (parsed.substitutes ?? []).slice(0, 3)) {
-    const name = String(s.name ?? "");
-    if (!name) continue;
-    const { data: match } = await rlsClient
+  const nameColumn = exercise.name_en == null ? "name" : "name_en";
+  const findMatch = async (pattern: string) => {
+    const { data, error } = await rlsClient
       .from("exercise_library")
       .select("id, external_id, name, equipment, image_urls")
-      .ilike("name", `%${name}%`)
-      .limit(1);
-    const m = match?.[0];
+      .ilike(nameColumn, pattern)
+      .order("external_id")
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  };
+  for (const s of (parsed.substitutes ?? []).slice(0, 3)) {
+    const name = String(s.name ?? "").trim();
+    if (!name) continue;
+    const literal = escapeLike(name);
+    // Prioriza o nome igual ao sugerido antes de aceitar um trecho do nome.
+    const m = (await findMatch(literal)) ?? (await findMatch(`%${literal}%`));
     const image = m && Array.isArray(m.image_urls) ? m.image_urls[0] : null;
     substitutes.push({
       name,

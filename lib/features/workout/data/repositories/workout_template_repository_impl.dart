@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:olimpus/core/constants/app_constants.dart';
 import 'package:olimpus/core/database/sync/sync_queue_service.dart';
 import 'package:olimpus/core/utils/uuid_v4.dart';
+import 'package:olimpus/features/workout/data/datasources/catalog_revision_store.dart';
 import 'package:olimpus/features/workout/data/datasources/exercise_catalog_remote_datasource.dart';
 import 'package:olimpus/features/workout/data/datasources/workout_template_local_datasource.dart';
 import 'package:olimpus/features/workout/domain/entities/catalog_exercise.dart';
@@ -12,11 +14,13 @@ class WorkoutTemplateRepositoryImpl implements IWorkoutTemplateRepository {
   WorkoutTemplateRepositoryImpl({
     required this._localDataSource,
     required this._syncQueueService,
+    required this._catalogRevisionStore,
     this._catalogRemoteDataSource,
   });
 
   final WorkoutTemplateLocalDataSource _localDataSource;
   final SyncQueueService _syncQueueService;
+  final CatalogRevisionStore _catalogRevisionStore;
   final IExerciseCatalogRemoteDataSource? _catalogRemoteDataSource;
 
   @override
@@ -116,12 +120,18 @@ class WorkoutTemplateRepositoryImpl implements IWorkoutTemplateRepository {
   @override
   Future<void> ensureCatalogSynced() async {
     if (_catalogRemoteDataSource == null) return;
+
     final count = await _localDataSource.countUuidCatalogExercises();
-    if (count >= 10) return;
+    final storedRevision = _catalogRevisionStore.read();
+    if (count >= 10 && storedRevision >= AppConstants.exerciseCatalogRevision) {
+      return;
+    }
 
     final entries = await _catalogRemoteDataSource.fetchCatalog();
     if (entries.isNotEmpty) {
       await _localDataSource.upsertCatalogExercises(entries);
+      // Só registra a revisão depois que o catálogo foi persistido com sucesso.
+      await _catalogRevisionStore.write(AppConstants.exerciseCatalogRevision);
     }
   }
 
