@@ -11,6 +11,7 @@ import '../../domain/usecases/resend_confirmation.dart';
 import '../../domain/usecases/reset_password.dart';
 import '../../domain/usecases/sign_up.dart';
 import '../../domain/usecases/update_password.dart';
+import '../../domain/usecases/delete_account.dart';
 
 // ── Datasource ──
 final authDatasourceProvider = Provider<SupabaseAuthDatasource>((ref) {
@@ -45,6 +46,10 @@ final resetPasswordUseCaseProvider = Provider<ResetPassword>((ref) {
 
 final updatePasswordUseCaseProvider = Provider<UpdatePassword>((ref) {
   return UpdatePassword(ref.watch(authRepositoryProvider));
+});
+
+final deleteAccountUseCaseProvider = Provider<DeleteAccount>((ref) {
+  return DeleteAccount(ref.watch(authRepositoryProvider));
 });
 
 // ── Auth State Stream ──

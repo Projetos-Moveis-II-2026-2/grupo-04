@@ -23,13 +23,27 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? connection.connect());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
-      // Migrações futuras (v2, v3, ...) entram aqui.
+      // Limpa apenas o catálogo público para forçar o re-seed em pt-BR sem
+      // afetar dados do usuário (exercise_sets, workout_sessions, etc.).
+      if (from < 2) {
+        await delete(exerciseLibraryTable).go();
+      }
     },
   );
+
+  /// Apaga todos os dados do usuário das tabelas locais.
+  /// Preserva a exercise_library (catálogo público).
+  Future<void> deleteAllUserData() => transaction(() async {
+    await delete(syncQueue).go();
+    await delete(exerciseSets).go();
+    await delete(waterIntake).go();
+    await delete(workoutSessions).go();
+    await delete(workoutTemplates).go();
+  });
 }
