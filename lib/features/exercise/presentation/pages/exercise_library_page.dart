@@ -9,6 +9,7 @@ import 'package:olimpus/core/widgets/app_error_widget.dart';
 
 import '../providers/exercise_providers.dart';
 import '../widgets/exercise_card.dart';
+import '../widgets/exercise_library_skeleton.dart';
 import '../widgets/muscle_group_filter.dart';
 
 class ExerciseLibraryPage extends ConsumerStatefulWidget {
@@ -104,7 +105,7 @@ class _ExerciseLibraryPageState extends ConsumerState<ExerciseLibraryPage> {
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const ExerciseLibrarySkeleton(),
               error: (error, stack) => AppErrorWidget(
                 error: error,
                 stackTrace: stack,
