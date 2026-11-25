@@ -340,4 +340,148 @@ void main() {
       },
     );
   });
+
+  // ── #84: restauração, renovação e expiração da sessão ──
+  //
+  // Aqui o authStateProvider NÃO é sobrescrito: o estado vem do repositório
+  // (como no app), e o binding de expiração é observado como no MainApp.
+  group('ciclo de vida da sessão (#84)', () {
+    late StreamController<AppUser?> authController;
+    late StreamController<void> expiredController;
+    late MockAuthRepository mockAuthRepo;
+    late SharedPreferences prefs;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({
+        'onboarding_completed_user-456': true,
+      });
+      prefs = await SharedPreferences.getInstance();
+      authController = StreamController<AppUser?>.broadcast();
+      expiredController = StreamController<void>.broadcast();
+      mockAuthRepo = MockAuthRepository();
+      when(() => mockAuthRepo.authStateChanges())
+          .thenAnswer((_) => authController.stream);
+      when(() => mockAuthRepo.sessionExpired())
+          .thenAnswer((_) => expiredController.stream);
+      when(() => mockAuthRepo.currentUser).thenReturn(null);
+    });
+
+    tearDown(() async {
+      await authController.close();
+      await expiredController.close();
+    });
+
+    Widget app() => ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        authRepositoryProvider.overrideWithValue(mockAuthRepo),
+        onboardingStatusProvider.overrideWith((ref) async => true),
+        userExercisesWithProgressProvider.overrideWith(
+          (ref) => Stream.value(const []),
+        ),
+        hasDemoDataProgressionProvider.overrideWith(
+          (ref) => Stream.value(false),
+        ),
+      ],
+      child: Consumer(
+        builder: (context, ref, _) {
+          ref.watch(sessionExpiryBindingProvider);
+          return MaterialApp.router(routerConfig: ref.watch(appRouterProvider));
+        },
+      ),
+    );
+
+    testWidgets(
+      'fechar e reabrir o app: sessão persistida é restaurada direto na Home',
+      (tester) async {
+        // 1ª abertura: login feito, usuário na Home.
+        await tester.pumpWidget(app());
+        authController.add(confirmedUser);
+        await tester.pumpAndSettle();
+        expect(find.byType(HomePage), findsOneWidget);
+
+        // "Kill process": descarta toda a árvore e os providers.
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+
+        // Reabertura: o SDK restaura a sessão salva (initialSession).
+        await tester.pumpWidget(app());
+        expect(find.byType(SplashPage), findsOneWidget);
+        authController.add(confirmedUser);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(HomePage), findsOneWidget);
+        expect(find.byType(LoginPage), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'renovação do token mantém o usuário onde está (sem redirecionar)',
+      (tester) async {
+        await tester.pumpWidget(app());
+        authController.add(confirmedUser);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.settings_outlined).first);
+        await tester.pumpAndSettle();
+        expect(find.byType(SettingsPage), findsOneWidget);
+
+        // tokenRefreshed entrega um usuário igual (novo objeto).
+        authController.add(
+          AppUser(
+            id: confirmedUser.id,
+            email: confirmedUser.email,
+            emailConfirmedAt: confirmedUser.emailConfirmedAt,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SettingsPage), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'refresh token expirado/revogado → /login com aviso de sessão expirada',
+      (tester) async {
+        await tester.pumpWidget(app());
+        authController.add(confirmedUser);
+        await tester.pumpAndSettle();
+        expect(find.byType(HomePage), findsOneWidget);
+
+        // SDK: signedOut(sessionExpired) → sessão removida.
+        expiredController.add(null);
+        authController.add(null);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(LoginPage), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('session-expired-banner')),
+          findsOneWidget,
+        );
+        expect(find.textContaining('Sua sessão expirou'), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Fechar aviso'));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('session-expired-banner')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets('logout feito pelo usuário não mostra o aviso', (tester) async {
+      await tester.pumpWidget(app());
+      authController.add(confirmedUser);
+      await tester.pumpAndSettle();
+
+      authController.add(null);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LoginPage), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('session-expired-banner')),
+        findsNothing,
+      );
+    });
+  });
 }

@@ -12,6 +12,7 @@ import '../providers/progress_providers.dart';
 import '../widgets/exercise_load_chart.dart';
 import '../widgets/exercise_selector.dart';
 import '../widgets/monthly_calendar_section.dart';
+import '../widgets/progress_skeletons.dart';
 import '../widgets/streak_section.dart';
 
 /// Página principal da aba de Progresso e Evolução de Carga.
@@ -98,7 +99,7 @@ class ProgressPage extends ConsumerWidget {
         ],
       ),
       body: exercisesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const ProgressPageSkeleton(),
         error: (error, stackTrace) => AppErrorWidget(
           error: error,
           stackTrace: stackTrace,
@@ -334,10 +335,7 @@ class _ProgressDataView extends ConsumerWidget {
 
           // Gráfico de evolução de carga
           progressionAsync.when(
-            loading: () => const SizedBox(
-              height: 260,
-              child: Center(child: CircularProgressIndicator()),
-            ),
+            loading: () => const ExerciseLoadChartSkeleton(),
             error: (error, stackTrace) => AppErrorWidget(
               error: error,
               stackTrace: stackTrace,

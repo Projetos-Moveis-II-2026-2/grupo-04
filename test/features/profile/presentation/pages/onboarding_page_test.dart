@@ -253,7 +253,7 @@ void main() {
       expect(fakeNotifier.wasCalled, isTrue);
       expect(fakeNotifier.capturedDisplayName, 'Carlos');
       expect(fakeNotifier.capturedWeight, 85.0);
-      expect(fakeNotifier.capturedWaterGoal, 2000);
+      expect(fakeNotifier.capturedWaterGoal, 2975);
       expect(fakeNotifier.capturedExperience, ExperienceLevel.intermediate);
     });
 

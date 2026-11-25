@@ -16,9 +16,10 @@ Projeto da disciplina **Programação para Dispositivos Móveis II** (Grupo 4).
 6. [Supabase local, migrações e Edge Functions](#supabase-local-migrações-e-edge-functions)
 7. [Geração de código, testes e CI](#geração-de-código-testes-e-ci)
 8. [Arquitetura](#arquitetura)
-9. [Build de produção (.aab)](#build-de-produção-aab)
-10. [Como contribuir](#como-contribuir)
-11. [Documentação](#documentação)
+9. [Imagens de exercícios (bucket `exercise-media`)](#imagens-de-exercícios-bucket-exercise-media)
+10. [Build de produção (.aab)](#build-de-produção-aab)
+11. [Como contribuir](#como-contribuir)
+12. [Documentação](#documentação)
 
 ---
 
@@ -89,7 +90,19 @@ Status conferido no código de `lib/` (telas, widgets e serviços efetivamente r
 | Sincronização offline | Parcial | `SyncQueue` com retry e backoff exponencial, dreno automático ao reconectar e pull inicial do Supabase. Em produção, **somente `water_intake` é enfileirado**; treinos não. |
 | IA: sugestão de carga | Parcial | Backend pronto (Edge Function `suggest-load`, `AiDatasource`, `suggestionProvider`) e o widget `LoadSuggestionBadge` existe, mas **nenhuma tela o utiliza**. |
 | IA: substituição de exercício | Parcial | Backend pronto (RPC `find_substitutes`, Edge Function `suggest-substitute`, `substitutesProvider`) e `showSubstitutionSheet` existe, mas **nenhuma tela o chama**. |
-| Notificações e lembretes | Pendente | `flutter_local_notifications`, `permission_handler`, `flutter_timezone` e `timezone` estão no `pubspec.yaml`, mas não são importados em nenhum arquivo de `lib/`. Não há lembretes de água nem de treino. |
+| Notificações e lembretes | Parcial | Lembretes de hidratação implementados (#46): agendamento local recorrente, intervalo e janela configuráveis, silenciamento no restante do dia ao atingir a meta (Android), sobrevivência a reboot, sincronização com fuso horário e redirecionamento ao tocar para a tela de Hidratação (`/water`). Lembretes de treino continuam pendentes. |
+
+> ### Notificações locais de hidratação e limitações conhecidas
+>
+> Os lembretes de hidratação são agendados localmente no dispositivo via `flutter_local_notifications` e `AlarmManager` nativo:
+> - **Configuração:** acessível na tela Configurações (`/settings`), com ativação/desativação, seleção de intervalo (1h, 2h ou 3h) e janela horária (início e término).
+> - **Sobrevivência a reboot:** garantida no Android via `ScheduledNotificationBootReceiver` (`BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `QUICKBOOT_POWERON`).
+> - **Silenciamento após meta batida:** no Android, quando o total de água consumido no dia atinge ou ultrapassa a meta diária, os lembretes restantes do dia são silenciados e reprogramados para iniciar no dia seguinte, mantendo a recorrência diária.
+> - **Limitações conhecidas:**
+>   - **Supressão no iOS:** a supressão de disparos restantes no mesmo dia após bater a meta opera plenamente no Android; no iOS, o gatilho nativo `UNCalendarNotificationTrigger` com `DateTimeComponents.time` avalia apenas o horário do dia (ignorando a data no reagendamento de repetição), de modo que os lembretes diários recorrentes continuam agendados normalmente.
+>   - **Forçar parada (Android):** se o aplicativo for encerrado via "Forçar parada" nas configurações do sistema, os alarmes do `AlarmManager` são cancelados pelo Android até que o usuário abra o app novamente.
+>   - **Otimização de bateria:** fabricantes com políticas agressivas de economia de energia (como Xiaomi/MIUI, Samsung e Huawei) podem postergar alarmes em modo Doze ou standby prolongado.
+>   - **Web e Desktop:** lembretes periódicos locais não são suportados nessas plataformas; a seção de configurações é ocultada automaticamente.
 
 ---
 
@@ -134,7 +147,7 @@ Versões conforme o [`pubspec.yaml`](pubspec.yaml).
 | `equatable` | `^2.0.0` | Igualdade por valor nas entidades. |
 | `json_annotation`, `freezed_annotation` | `^4.9.0`, `^3.1.0` | Serialização e modelos imutáveis. |
 | `shimmer` | `^3.0.0` | Declarada; ainda não usada em `lib/`. |
-| `flutter_local_notifications`, `permission_handler`, `flutter_timezone`, `timezone` | `^22.3.0`, `^13.0.1`, `^5.1.0`, `^0.11.0` | Notificações locais. Declaradas; **ainda não usadas em `lib/`**. |
+| `flutter_local_notifications`, `permission_handler`, `flutter_timezone`, `timezone` | `^22.3.0`, `^13.0.1`, `^5.1.0`, `^0.11.0` | Notificações locais e sincronização de fusos horários nos lembretes de hidratação. |
 
 Desenvolvimento: `build_runner`, `drift_dev` (geração do código do Drift), `mocktail` (mocks), `flutter_lints` e `riverpod_lint` (análise estática). Também constam `json_serializable`, `freezed` e `riverpod_generator`.
 
@@ -237,6 +250,25 @@ Migrações em [`supabase/migrations/`](supabase/migrations/):
 | `20260915180000_fix_profiles_cascade.sql` | Ajuste de cascade em `profiles`. |
 
 **Seed:** a carga inicial de exercícios é aplicada pela própria migração `20260906231952_seed_exercises.sql`. Os arquivos em [`supabase/seed/`](supabase/seed/) (`exercises.json` e o gerador `import-exercises.ps1`) são a origem desse seed; o `config.toml` aponta para `./seed.sql`, arquivo que não existe no repositório.
+
+### Catálogo de exercícios em pt-BR
+
+A tabela `public.exercise_library` guarda os nomes e as instruções em pt-BR
+em `name` e `instructions`. As colunas `name_en` e `instructions_en`
+preservam o original em inglês. A função `suggest-substitute` usa
+`name_en` para localizar sugestões e devolve o nome em português quando
+encontra o exercício no catálogo.
+
+Para reproduzir a migration da issue #124 a partir de
+`assets/data/exercises_pt.json`:
+
+```bash
+dart run tool/translation/generate_supabase_migration.dart
+git diff --exit-code supabase/migrations
+```
+
+O gerador recria a migration inicial de tradução. Para mudanças depois que a
+migration já estiver publicada, crie uma migration nova.
 
 ### Edge Functions
 
@@ -379,6 +411,68 @@ Decisões principais:
 ├── docs/                          # Documentação do projeto
 ├── android/ ios/ web/ linux/ macos/ windows/
 └── .github/workflows/             # CI (ci.yml) e testes de integração (integration.yml)
+```
+
+---
+
+## Imagens de exercícios (bucket `exercise-media`)
+
+As imagens do catálogo são servidas pelo bucket público `exercise-media` do Supabase. O bucket é criado pela migration `20261124000000_exercise_media.sql` e passa a aceitar WebP e JPEG em `20261125010000_exercise_media_frames.sql`. O app monta as URLs em `lib/core/constants/exercise_media.dart`.
+
+Estrutura dos objetos, em que `<id>` é o `id`/`external_id` do catálogo (por exemplo, `3_4_Sit-Up`):
+
+| Caminho no bucket | Conteúdo |
+|-------------------|----------|
+| `v1/<id>/0.jpg` | Primeiro quadro original (JPG). |
+| `v1/<id>/1.jpg` | Segundo quadro original (JPG), quando o exercício tem dois. |
+| `v1/<id>/thumbnail.webp` | Miniatura otimizada já existente. |
+| `v1/<id>/motion.webp` | Animação otimizada já existente. |
+
+O caminho relativo do seed (`<id>/0.jpg`) corresponde à chave `v1/<id>/0.jpg` no bucket. Os WebP existentes foram gerados por [`tool/generate_exercise_media.dart`](tool/generate_exercise_media.dart) e ficam na mesma árvore `v1/`.
+
+### Preparar o staging
+
+Na raiz do repositório vinculado ao Supabase, monte uma árvore local `v1/` com os JPGs listados em `supabase/seed/exercises.json`. O exemplo usa `jq` para ler o seed e mantém os WebP que já estão no bucket.
+
+```bash
+REPO=$PWD
+STAGING=$(mktemp -d)
+FREE_EXERCISE_DB=/caminho/para/free-exercise-db/exercises
+
+mkdir -p "$STAGING/v1"
+
+while IFS= read -r rel; do
+  mkdir -p "$STAGING/v1/$(dirname "$rel")"
+  cp "$FREE_EXERCISE_DB/$rel" "$STAGING/v1/$rel"
+done < <(jq -r '.[].images[]' supabase/seed/exercises.json)
+```
+
+### Enviar para o bucket
+
+Confirme que o bucket já aceita `image/jpeg` antes do upload. Na raiz do staging (o diretório que contém `v1/`), envie a árvore inteira:
+
+```bash
+(cd "$STAGING" && supabase storage cp --workdir "$REPO" --experimental --remote -r -j 8 --cache-control max-age=31536000 v1 ss:///exercise-media)
+```
+
+O destino `ss:///exercise-media` é a raiz do bucket, então os objetos chegam como `v1/<id>/...`; `-r` envia a árvore, `-j 8` paraleliza e `--cache-control max-age=31536000` define cache de um ano.
+
+O upload precisa acontecer **antes** da migration: [`20261125010000_exercise_media_frames.sql`](supabase/migrations/20261125010000_exercise_media_frames.sql) só reescreve `image_urls` de um exercício quando todos os quadros dele já existem em `storage.objects`. Sem os objetos, essa parte permanece no-op. Depois do merge, com o upload concluído, aplique a migration no projeto remoto com `supabase db push`.
+
+### `EXERCISE_MEDIA_BASE_URL`
+
+A constante `ExerciseMedia.baseUrl` lê `EXERCISE_MEDIA_BASE_URL` em tempo de compilação e usa como padrão `${ApiEndpoints.supabaseUrl}/storage/v1/object/public/exercise-media/v1`. A configuração vale para as URLs geradas pelo app. As URLs gravadas no banco e retornadas pela RPC usam a base de produção definida na migration.
+
+```bash
+flutter run --dart-define=EXERCISE_MEDIA_BASE_URL=https://<project-ref>.supabase.co/storage/v1/object/public/exercise-media/v1
+```
+
+Para conferir a publicação, teste um objeto real (a raiz do prefixo não é um objeto) e espere **HTTP 200**:
+
+```bash
+BASE='https://<project-ref>.supabase.co/storage/v1/object/public/exercise-media/v1'
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/3_4_Sit-Up/0.jpg"          # 200
+curl -sS -o /dev/null -w '%{http_code}\n' "$BASE/3_4_Sit-Up/thumbnail.webp" # 200
 ```
 
 ---

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olimpus/core/database/sync/sync_providers.dart';
 import 'package:olimpus/core/providers.dart';
 import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart';
+import 'package:olimpus/features/workout/data/datasources/catalog_revision_store.dart';
 import 'package:olimpus/features/workout/data/datasources/exercise_catalog_remote_datasource.dart';
 import 'package:olimpus/features/workout/data/datasources/workout_template_local_datasource.dart';
 import 'package:olimpus/features/workout/data/repositories/workout_template_repository_impl.dart';
@@ -27,6 +28,13 @@ final exerciseCatalogRemoteDataSourceProvider =
       );
     });
 
+/// Guarda a revisão do catálogo remoto já aplicada localmente.
+final catalogRevisionStoreProvider = Provider<CatalogRevisionStore>((ref) {
+  return SharedPreferencesCatalogRevisionStore(
+    ref.watch(sharedPreferencesProvider),
+  );
+});
+
 // ── Repository ──
 
 final workoutTemplateRepositoryProvider = Provider<IWorkoutTemplateRepository>((
@@ -35,6 +43,7 @@ final workoutTemplateRepositoryProvider = Provider<IWorkoutTemplateRepository>((
   return WorkoutTemplateRepositoryImpl(
     localDataSource: ref.watch(workoutTemplateLocalDataSourceProvider),
     syncQueueService: ref.watch(syncQueueServiceProvider),
+    catalogRevisionStore: ref.watch(catalogRevisionStoreProvider),
     catalogRemoteDataSource: ref.watch(exerciseCatalogRemoteDataSourceProvider),
   );
 });

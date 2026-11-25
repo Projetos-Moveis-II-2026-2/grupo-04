@@ -17,7 +17,7 @@ mapeado para `Exercise` e gravado uma única vez na tabela Drift `exercise_libra
 | D3 | Campos curtos (`primaryMuscles`, `secondaryMuscles`, `level`, `equipment`, `mechanic`, `force`, `category`) **continuam em inglês nos dados** e são traduzidos **só na exibição** | O filtro de grupo muscular compara contra as chaves em inglês (`muscleGroupTranslation`); traduzir o dado quebraria o filtro e as consultas |
 | D4 | Mapas de rótulos centralizados em `lib/features/exercise/presentation/utils/exercise_labels.dart` (fora dos widgets); fallback devolve o valor original capitalizado se a chave for desconhecida | Evita string solta nas telas e é testável |
 | D5 | `schemaVersion` Drift **1 → 2**; no `onUpgrade` (`from < 2`) apagar **apenas** `exercise_library` | `syncExercises` só semeia com a tabela vazia; sem isso quem já instalou nunca receberia a tradução. Os `id`s são estáveis e `exercise_sets.exerciseId` é texto sem FK, então dados do usuário ficam intactos |
-| D6 | Supabase (`seed`, `find_substitutes`, Edge Functions) **fora de escopo** | O sheet de substituição recebe nome em inglês da RPC; ver tarefa T6 (resolver o nome pelo catálogo local via `external_id`/`id`) |
+| D6 | Supabase fora do escopo da #102 | A #124 leva a mesma tradução ao servidor e preserva os originais em inglês. Ver [plano da tradução no Supabase](PLANO_TRADUCAO_SUPABASE.md). |
 
 ## 2. Glossário (obrigatório em todas as traduções)
 

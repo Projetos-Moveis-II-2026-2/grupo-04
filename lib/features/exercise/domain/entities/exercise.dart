@@ -41,10 +41,42 @@ class Exercise extends Equatable {
     return primaryMuscles!.split(',').map((e) => e.trim()).toList();
   }
 
-  /// Helper to get the first image URL if available
-  String? get firstImageUrl {
-    if (imageUrls == null || imageUrls!.isEmpty) return null;
-    return imageUrls!.split(',').first.trim();
+  /// Músculos secundários como lista (a partir da string separada por vírgula).
+  List<String> get secondaryMuscleList {
+    if (secondaryMuscles == null || secondaryMuscles!.trim().isEmpty) {
+      return const [];
+    }
+    return secondaryMuscles!
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  /// Todas as URLs de imagem do exercício, na ordem do dataset (0, 1, ...).
+  List<String> get imageUrlList {
+    if (imageUrls == null || imageUrls!.trim().isEmpty) return const [];
+    return imageUrls!
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String? get firstImageUrl => imageUrlList.firstOrNull;
+
+  /// Passos de instrução, um por linha, sem marcadores (`•`, `-`, `1.`).
+  ///
+  /// O catálogo local grava as instruções como `• passo` por linha e o
+  /// catálogo remoto como texto separado por `\n`; ambos viram a mesma lista.
+  List<String> get instructionSteps {
+    if (instructions == null || instructions!.trim().isEmpty) return const [];
+    final marker = RegExp(r'^(?:[•\-*]|\d+[.)])\s*');
+    return instructions!
+        .split('\n')
+        .map((line) => line.trim().replaceFirst(marker, '').trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
   }
 
   @override
