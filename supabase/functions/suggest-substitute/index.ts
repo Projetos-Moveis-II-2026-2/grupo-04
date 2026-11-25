@@ -113,7 +113,7 @@ async function handle(
 
   const { data: exercise, error } = await rlsClient
     .from("exercise_library")
-    .select("name, name_en, equipment, primary_muscles")
+    .select()
     .eq("id", exerciseId)
     .maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -153,16 +153,24 @@ async function handle(
 
   // Resolve os nomes sugeridos contra o catálogo (IDs + imagem)
   const substitutes: Substitute[] = [];
-  for (const s of (parsed.substitutes ?? []).slice(0, 3)) {
-    const name = String(s.name ?? "");
-    if (!name) continue;
-    const pattern = `%${escapeLike(name)}%`;
-    const { data: match } = await rlsClient
+  const nameColumn = exercise.name_en == null ? "name" : "name_en";
+  const findMatch = async (pattern: string) => {
+    const { data, error } = await rlsClient
       .from("exercise_library")
-      .select("id, external_id, name, name_en, equipment, image_urls")
-      .ilike("name_en", pattern)
-      .limit(1);
-    const m = match?.[0];
+      .select("id, external_id, name, equipment, image_urls")
+      .ilike(nameColumn, pattern)
+      .order("external_id")
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  };
+  for (const s of (parsed.substitutes ?? []).slice(0, 3)) {
+    const name = String(s.name ?? "").trim();
+    if (!name) continue;
+    const literal = escapeLike(name);
+    // Prioriza o nome igual ao sugerido antes de aceitar um trecho do nome.
+    const m = (await findMatch(literal)) ?? (await findMatch(`%${literal}%`));
     const image = m && Array.isArray(m.image_urls) ? m.image_urls[0] : null;
     substitutes.push({
       name,

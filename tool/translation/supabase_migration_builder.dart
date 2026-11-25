@@ -12,6 +12,7 @@ const int expectedExerciseCount = 876;
 /// O payload não pode conter esta sequência, senão o PostgreSQL encerraria
 /// o literal antes da hora.
 const String ptDollarTag = r'$pt$';
+const String _blockDollarTag = r'$do$';
 
 /// Caminho fixo da migration gerada. Re-rodar o gerador deve produzir
 /// exatamente o mesmo arquivo.
@@ -87,11 +88,13 @@ String buildMigrationSql(Map<String, dynamic> catalog) {
   }
 
   final json = _encodeCatalog(normalized);
-  if (json.contains(ptDollarTag)) {
-    throw CatalogValidationException([
-      'o JSON serializado contém a sequência $ptDollarTag, que encerraria '
-          'o literal dollar-quoted do SQL.',
-    ]);
+  for (final tag in [ptDollarTag, _blockDollarTag]) {
+    if (json.contains(tag)) {
+      throw CatalogValidationException([
+        'o JSON serializado contém a sequência $tag, que encerraria '
+            'um bloco dollar-quoted do SQL.',
+      ]);
+    }
   }
 
   return _buildSql(json);
@@ -124,25 +127,23 @@ String _buildSql(String json) {
 -- (config.toml [db.seed] aponta para ./seed.sql, que não existe neste projeto).
 -- A contagem de $expectedExerciseCount linhas vale porque a migration
 -- 20260906231952_seed_exercises.sql já inseriu os 876 exercícios antes desta.
-ALTER TABLE public.exercise_library
-  ADD COLUMN IF NOT EXISTS name_en TEXT,
-  ADD COLUMN IF NOT EXISTS instructions_en TEXT[];
-
-UPDATE public.exercise_library
-SET name_en = replace(replace(name, chr(157), ''), chr(13), ''),
-    instructions_en = COALESCE(
-      ARRAY(
-        SELECT replace(replace(x, chr(157), ''), chr(13), '')
-        FROM unnest(instructions) WITH ORDINALITY AS u(x, n)
-        ORDER BY n
-      ),
-      '{}')
-WHERE name_en IS NULL;
-
-DO \$do\$
+DO $_blockDollarTag
 DECLARE
   n INTEGER;
 BEGIN
+  ALTER TABLE public.exercise_library
+    ADD COLUMN IF NOT EXISTS name_en TEXT,
+    ADD COLUMN IF NOT EXISTS instructions_en TEXT[];
+
+  UPDATE public.exercise_library
+  SET name_en = replace(replace(name, chr(157), ''), chr(13), ''),
+      instructions_en = ARRAY(
+        SELECT replace(replace(x, chr(157), ''), chr(13), '')
+        FROM unnest(instructions) WITH ORDINALITY AS u(x, n)
+        ORDER BY n
+      )
+  WHERE name_en IS NULL;
+
   UPDATE public.exercise_library AS e
   SET name = t.value->>'name',
       instructions = ARRAY(
@@ -160,14 +161,13 @@ $ptDollarTag::jsonb) AS t
   IF n <> $expectedExerciseCount THEN
     RAISE EXCEPTION 'exercise_library pt-BR: esperado $expectedExerciseCount linhas, atualizadas %', n;
   END IF;
+  COMMENT ON COLUMN public.exercise_library.name_en IS
+    'Nome original em inglês (free-exercise-db), preservado após a tradução do catálogo para pt-BR (#124).';
+  COMMENT ON COLUMN public.exercise_library.instructions_en IS
+    'Instruções originais em inglês (free-exercise-db), preservadas após a tradução do catálogo para pt-BR (#124).';
+
+  NOTIFY pgrst, 'reload schema';
 END
-\$do\$;
-
-COMMENT ON COLUMN public.exercise_library.name_en IS
-  'Nome original em inglês (free-exercise-db), preservado após a tradução do catálogo para pt-BR (#124).';
-COMMENT ON COLUMN public.exercise_library.instructions_en IS
-  'Instruções originais em inglês (free-exercise-db), preservadas após a tradução do catálogo para pt-BR (#124).';
-
-NOTIFY pgrst, 'reload schema';
+$_blockDollarTag;
 ''';
 }

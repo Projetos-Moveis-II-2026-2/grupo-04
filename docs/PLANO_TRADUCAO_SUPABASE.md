@@ -37,17 +37,17 @@ Este plano leva a mesma tradução para a tabela remota `public.exercise_library
 
 ### T1 — Gerador da migration (`tool/translation/generate_supabase_migration.dart`)
 - Ler `assets/data/exercises_pt.json` em UTF-8 e escrever `supabase/migrations/<timestamp>_exercise_library_pt_br.sql` em UTF-8 sem BOM, com conteúdo determinístico (ids ordenados).
-- Falhar se o JSON tiver `$pt$`, se algum nome estiver vazio ou se algum passo de instrução vier vazio.
-- O SQL gerado deve ter, nesta ordem:
+- Falhar se o JSON tiver `$pt$` ou `$do$`, se algum nome estiver vazio ou se algum passo de instrução vier vazio.
+- O SQL gerado executa as etapas a seguir em um único bloco `DO`:
   1. `ALTER TABLE public.exercise_library ADD COLUMN IF NOT EXISTS name_en TEXT, ADD COLUMN IF NOT EXISTS instructions_en TEXT[];`
   2. Backfill idempotente, só onde `name_en IS NULL`: `name_en = name` e `instructions_en = COALESCE(<instructions sem chr(157) e chr(13)>, '{}')`. Usar `ARRAY(SELECT replace(replace(x, chr(157), ''), chr(13), '') FROM unnest(instructions) x)`.
-  3. `DO $$ ... $$`: `UPDATE public.exercise_library e SET name = t.value->>'name', instructions = ARRAY(SELECT jsonb_array_elements_text(t.value->'instructions')) FROM jsonb_each($pt$...$pt$::jsonb) t WHERE e.external_id = t.key;` seguido de `GET DIAGNOSTICS n = ROW_COUNT; IF n <> 876 THEN RAISE EXCEPTION ...`.
+  3. Atualizar nomes e instruções na ordem do overlay, casando por `external_id`. Conferir o `ROW_COUNT` e abortar o bloco se for diferente de 876.
   4. Comentários `COMMENT ON COLUMN` explicando `name_en`/`instructions_en`, e `NOTIFY pgrst, 'reload schema';`.
 - Não mexer em `GRANT`/RLS. As colunas novas herdam o `SELECT` público da tabela.
 
 ### T2 — Edge Function `suggest-substitute`
 - `select("name, name_en, equipment, primary_muscles")`. O prompt usa `exercise.name_en ?? exercise.name`.
-- No casamento, `.ilike("name_en", ...)`. Escapar `%`, `_` e `\` do nome vindo do LLM antes de montar o padrão (hoje o nome entra cru). Retornar `matched_name = m.name` (pt-BR).
+- No casamento, priorizar o nome exato sem distinguir maiúsculas, depois buscar um trecho do nome com ordenação estável. Escapar os curingas do padrão e devolver o nome em pt-BR em `matched_name`.
 - Ajustar ou adicionar o teste Deno, se houver, e conferir que `suggest-load` continua compilando (não precisa mudar).
 
 ### T3 — Teste local

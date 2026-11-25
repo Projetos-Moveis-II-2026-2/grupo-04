@@ -54,5 +54,19 @@ void main() {
         ),
       );
     });
+
+    test('rejeita delimitadores SQL dentro do catálogo', () {
+      final catalog = jsonDecode(
+        File('assets/data/exercises_pt.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final entry = catalog.values.first as Map<String, dynamic>;
+      for (final tag in [ptDollarTag, r'$do$']) {
+        entry['name'] = 'Exercício $tag';
+        expect(
+          () => buildMigrationSql(catalog),
+          throwsA(isA<CatalogValidationException>()),
+        );
+      }
+    });
   });
 }

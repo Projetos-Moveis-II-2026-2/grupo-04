@@ -6,25 +6,23 @@
 -- (config.toml [db.seed] aponta para ./seed.sql, que não existe neste projeto).
 -- A contagem de 876 linhas vale porque a migration
 -- 20260906231952_seed_exercises.sql já inseriu os 876 exercícios antes desta.
-ALTER TABLE public.exercise_library
-  ADD COLUMN IF NOT EXISTS name_en TEXT,
-  ADD COLUMN IF NOT EXISTS instructions_en TEXT[];
-
-UPDATE public.exercise_library
-SET name_en = replace(replace(name, chr(157), ''), chr(13), ''),
-    instructions_en = COALESCE(
-      ARRAY(
-        SELECT replace(replace(x, chr(157), ''), chr(13), '')
-        FROM unnest(instructions) WITH ORDINALITY AS u(x, n)
-        ORDER BY n
-      ),
-      '{}')
-WHERE name_en IS NULL;
-
 DO $do$
 DECLARE
   n INTEGER;
 BEGIN
+  ALTER TABLE public.exercise_library
+    ADD COLUMN IF NOT EXISTS name_en TEXT,
+    ADD COLUMN IF NOT EXISTS instructions_en TEXT[];
+
+  UPDATE public.exercise_library
+  SET name_en = replace(replace(name, chr(157), ''), chr(13), ''),
+      instructions_en = ARRAY(
+        SELECT replace(replace(x, chr(157), ''), chr(13), '')
+        FROM unnest(instructions) WITH ORDINALITY AS u(x, n)
+        ORDER BY n
+      )
+  WHERE name_en IS NULL;
+
   UPDATE public.exercise_library AS e
   SET name = t.value->>'name',
       instructions = ARRAY(
@@ -919,12 +917,11 @@ $pt$::jsonb) AS t
   IF n <> 876 THEN
     RAISE EXCEPTION 'exercise_library pt-BR: esperado 876 linhas, atualizadas %', n;
   END IF;
+  COMMENT ON COLUMN public.exercise_library.name_en IS
+    'Nome original em inglês (free-exercise-db), preservado após a tradução do catálogo para pt-BR (#124).';
+  COMMENT ON COLUMN public.exercise_library.instructions_en IS
+    'Instruções originais em inglês (free-exercise-db), preservadas após a tradução do catálogo para pt-BR (#124).';
+
+  NOTIFY pgrst, 'reload schema';
 END
 $do$;
-
-COMMENT ON COLUMN public.exercise_library.name_en IS
-  'Nome original em inglês (free-exercise-db), preservado após a tradução do catálogo para pt-BR (#124).';
-COMMENT ON COLUMN public.exercise_library.instructions_en IS
-  'Instruções originais em inglês (free-exercise-db), preservadas após a tradução do catálogo para pt-BR (#124).';
-
-NOTIFY pgrst, 'reload schema';
