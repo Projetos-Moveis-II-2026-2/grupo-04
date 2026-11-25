@@ -64,4 +64,71 @@ void main() {
       expect(exercise.props, hasLength(15));
     });
   });
+  group('imageUrlList', () {
+    test('returns every trimmed url in order', () {
+      expect(buildExercise().imageUrlList, [
+        'https://img/1.jpg',
+        'https://img/2.jpg',
+      ]);
+    });
+
+    test('returns an empty list when imageUrls is null or blank', () {
+      expect(buildExercise(imageUrls: null).imageUrlList, isEmpty);
+      expect(buildExercise(imageUrls: '  ').imageUrlList, isEmpty);
+    });
+  });
+
+  group('secondaryMuscleList', () {
+    Exercise withSecondary(String? value) => Exercise(
+      id: 'ex-1',
+      externalId: 'ext-1',
+      name: 'Supino',
+      secondaryMuscles: value,
+      synced: false,
+      updatedAt: DateTime(2026, 9, 16),
+    );
+
+    test('splits and trims, dropping empty entries', () {
+      expect(withSecondary('shoulders, triceps,').secondaryMuscleList, [
+        'shoulders',
+        'triceps',
+      ]);
+    });
+
+    test('returns an empty list when null', () {
+      expect(withSecondary(null).secondaryMuscleList, isEmpty);
+    });
+  });
+
+  group('instructionSteps', () {
+    Exercise withInstructions(String? value) => Exercise(
+      id: 'ex-1',
+      externalId: 'ext-1',
+      name: 'Supino',
+      instructions: value,
+      synced: false,
+      updatedAt: DateTime(2026, 9, 16),
+    );
+
+    test('strips bullet markers from the local catalog format', () {
+      expect(
+        withInstructions('• Deite no banco.\n• Empurre a barra.')
+            .instructionSteps,
+        ['Deite no banco.', 'Empurre a barra.'],
+      );
+    });
+
+    test('accepts plain and numbered lines from the remote catalog', () {
+      expect(
+        withInstructions('1. Primeiro passo\n\n2) Segundo passo\nTerceiro')
+            .instructionSteps,
+        ['Primeiro passo', 'Segundo passo', 'Terceiro'],
+      );
+    });
+
+    test('returns an empty list when instructions are missing', () {
+      expect(withInstructions(null).instructionSteps, isEmpty);
+      expect(withInstructions('   ').instructionSteps, isEmpty);
+    });
+  });
 }
