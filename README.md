@@ -238,6 +238,25 @@ Migrações em [`supabase/migrations/`](supabase/migrations/):
 
 **Seed:** a carga inicial de exercícios é aplicada pela própria migração `20260906231952_seed_exercises.sql`. Os arquivos em [`supabase/seed/`](supabase/seed/) (`exercises.json` e o gerador `import-exercises.ps1`) são a origem desse seed; o `config.toml` aponta para `./seed.sql`, arquivo que não existe no repositório.
 
+### Catálogo de exercícios em pt-BR
+
+A tabela `public.exercise_library` guarda os nomes e as instruções em pt-BR
+em `name` e `instructions`. As colunas `name_en` e `instructions_en`
+preservam o original em inglês. A função `suggest-substitute` usa
+`name_en` para localizar sugestões e devolve o nome em português quando
+encontra o exercício no catálogo.
+
+Para reproduzir a migration da issue #124 a partir de
+`assets/data/exercises_pt.json`:
+
+```bash
+dart run tool/translation/generate_supabase_migration.dart
+git diff --exit-code supabase/migrations
+```
+
+O gerador recria a migration inicial de tradução. Para mudanças depois que a
+migration já estiver publicada, crie uma migration nova.
+
 ### Edge Functions
 
 Funções Deno em [`supabase/functions/`](supabase/functions/), com **JWT de usuário obrigatório** (`verify_jwt = true` no `supabase/config.toml` + `auth: ["user"]` no handler):
