@@ -90,7 +90,19 @@ Status conferido no código de `lib/` (telas, widgets e serviços efetivamente r
 | Sincronização offline | Parcial | `SyncQueue` com retry e backoff exponencial, dreno automático ao reconectar e pull inicial do Supabase. Em produção, **somente `water_intake` é enfileirado**; treinos não. |
 | IA: sugestão de carga | Parcial | Backend pronto (Edge Function `suggest-load`, `AiDatasource`, `suggestionProvider`) e o widget `LoadSuggestionBadge` existe, mas **nenhuma tela o utiliza**. |
 | IA: substituição de exercício | Parcial | Backend pronto (RPC `find_substitutes`, Edge Function `suggest-substitute`, `substitutesProvider`) e `showSubstitutionSheet` existe, mas **nenhuma tela o chama**. |
-| Notificações e lembretes | Pendente | `flutter_local_notifications`, `permission_handler`, `flutter_timezone` e `timezone` estão no `pubspec.yaml`, mas não são importados em nenhum arquivo de `lib/`. Não há lembretes de água nem de treino. |
+| Notificações e lembretes | Parcial | Lembretes de hidratação implementados (#46): agendamento local recorrente, intervalo e janela configuráveis, silenciamento no restante do dia ao atingir a meta (Android), sobrevivência a reboot, sincronização com fuso horário e redirecionamento ao tocar para a tela de Hidratação (`/water`). Lembretes de treino continuam pendentes. |
+
+> ### Notificações locais de hidratação e limitações conhecidas
+>
+> Os lembretes de hidratação são agendados localmente no dispositivo via `flutter_local_notifications` e `AlarmManager` nativo:
+> - **Configuração:** acessível na tela Configurações (`/settings`), com ativação/desativação, seleção de intervalo (1h, 2h ou 3h) e janela horária (início e término).
+> - **Sobrevivência a reboot:** garantida no Android via `ScheduledNotificationBootReceiver` (`BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `QUICKBOOT_POWERON`).
+> - **Silenciamento após meta batida:** no Android, quando o total de água consumido no dia atinge ou ultrapassa a meta diária, os lembretes restantes do dia são silenciados e reprogramados para iniciar no dia seguinte, mantendo a recorrência diária.
+> - **Limitações conhecidas:**
+>   - **Supressão no iOS:** a supressão de disparos restantes no mesmo dia após bater a meta opera plenamente no Android; no iOS, o gatilho nativo `UNCalendarNotificationTrigger` com `DateTimeComponents.time` avalia apenas o horário do dia (ignorando a data no reagendamento de repetição), de modo que os lembretes diários recorrentes continuam agendados normalmente.
+>   - **Forçar parada (Android):** se o aplicativo for encerrado via "Forçar parada" nas configurações do sistema, os alarmes do `AlarmManager` são cancelados pelo Android até que o usuário abra o app novamente.
+>   - **Otimização de bateria:** fabricantes com políticas agressivas de economia de energia (como Xiaomi/MIUI, Samsung e Huawei) podem postergar alarmes em modo Doze ou standby prolongado.
+>   - **Web e Desktop:** lembretes periódicos locais não são suportados nessas plataformas; a seção de configurações é ocultada automaticamente.
 
 ---
 
@@ -135,7 +147,7 @@ Versões conforme o [`pubspec.yaml`](pubspec.yaml).
 | `equatable` | `^2.0.0` | Igualdade por valor nas entidades. |
 | `json_annotation`, `freezed_annotation` | `^4.9.0`, `^3.1.0` | Serialização e modelos imutáveis. |
 | `shimmer` | `^3.0.0` | Declarada; ainda não usada em `lib/`. |
-| `flutter_local_notifications`, `permission_handler`, `flutter_timezone`, `timezone` | `^22.3.0`, `^13.0.1`, `^5.1.0`, `^0.11.0` | Notificações locais. Declaradas; **ainda não usadas em `lib/`**. |
+| `flutter_local_notifications`, `permission_handler`, `flutter_timezone`, `timezone` | `^22.3.0`, `^13.0.1`, `^5.1.0`, `^0.11.0` | Notificações locais e sincronização de fusos horários nos lembretes de hidratação. |
 
 Desenvolvimento: `build_runner`, `drift_dev` (geração do código do Drift), `mocktail` (mocks), `flutter_lints` e `riverpod_lint` (análise estática). Também constam `json_serializable`, `freezed` e `riverpod_generator`.
 

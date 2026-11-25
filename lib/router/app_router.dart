@@ -26,10 +26,28 @@ import '../features/workout/presentation/pages/workout_list_page.dart';
 import '../features/workout/presentation/pages/workout_session_page.dart';
 import 'scaffold_with_nav_bar.dart';
 
+/// Chave global do navegador para navegação imperativa de notificações.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Rota pendente vinda de toque em notificação antes de concluir login/onboarding.
+final pendingNotificationRouteProvider =
+    NotifierProvider<PendingNotificationRouteNotifier, String?>(
+      PendingNotificationRouteNotifier.new,
+    );
+
+class PendingNotificationRouteNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void setRoute(String? route) => state = route;
+  void clear() => state = null;
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final routerNotifier = RouterNotifier(ref);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: routerNotifier,
     redirect: (context, state) {
@@ -90,6 +108,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // 5. Se o onboarding estiver concluído
+      // Se houver rota pendente de notificação (ex: /water), direciona para ela
+      final pendingRoute = ref.read(pendingNotificationRouteProvider);
+      if (pendingRoute != null) {
+        Future.microtask(() {
+          ref.read(pendingNotificationRouteProvider.notifier).clear();
+        });
+        return pendingRoute;
+      }
+
       // Bloqueia telas de auth e a própria tela de onboarding (nunca mais volta)
       if (location == '/splash' ||
           location == '/onboarding' ||
