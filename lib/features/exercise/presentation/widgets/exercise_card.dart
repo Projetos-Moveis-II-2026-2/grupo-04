@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
 import '../../domain/entities/exercise.dart';
+import '../utils/exercise_labels.dart';
 
 class ExerciseCard extends StatelessWidget {
   final Exercise exercise;
   final VoidCallback? onTap;
 
-  const ExerciseCard({
-    super.key,
-    required this.exercise,
-    this.onTap,
-  });
+  const ExerciseCard({super.key, required this.exercise, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -27,28 +25,41 @@ class ExerciseCard extends StatelessWidget {
               height: 100,
               child: exercise.firstImageUrl != null
                   ? (exercise.firstImageUrl!.startsWith('assets/')
-                      ? Image.asset(
-                          exercise.firstImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(
-                            child: Icon(Icons.fitness_center, size: 40, color: Colors.grey),
-                          ),
-                        )
-                      : CachedNetworkImage(
-                          imageUrl: exercise.firstImageUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                          errorWidget: (context, url, error) => const Center(
-                            child: Icon(Icons.fitness_center, size: 40, color: Colors.grey),
-                          ),
-                        ))
+                        ? Image.asset(
+                            exercise.firstImageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Center(
+                                  child: Icon(
+                                    Icons.fitness_center,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: exercise.firstImageUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            errorWidget: (context, url, error) => const Center(
+                              child: Icon(
+                                Icons.fitness_center,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ))
                   : const Center(
-                      child: Icon(Icons.fitness_center, size: 40, color: Colors.grey),
+                      child: Icon(
+                        Icons.fitness_center,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
                     ),
             ),
-            
+
             // Informações
             Expanded(
               child: Padding(
@@ -58,36 +69,38 @@ class ExerciseCard extends StatelessWidget {
                   children: [
                     Text(
                       exercise.name,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      exercise.primaryMuscles ?? 'N/A',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      muscleListLabel(exercise.primaryMuscles),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
-                    if (exercise.equipment != null)
+                    if (exercise.equipment != null &&
+                        exercise.equipment!.trim().isNotEmpty)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                          color: Theme.of(context).primaryColor
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          exercise.equipment!,
+                          equipmentLabel(exercise.equipment),
                           style: TextStyle(
                             fontSize: 10,
                             color: Theme.of(context).primaryColor,
                           ),
                         ),
-                      )
+                      ),
                   ],
                 ),
               ),

@@ -1,28 +1,70 @@
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/entities/exercise.dart';
+import '../providers/exercise_providers.dart';
+import '../utils/exercise_labels.dart';
 
-class ExerciseDetailsPage extends StatelessWidget {
-  final Exercise exercise;
+class ExerciseDetailsPage extends ConsumerWidget {
+  final Exercise? exercise;
+  final String? exerciseId;
 
-  const ExerciseDetailsPage({
-    super.key,
-    required this.exercise,
-  });
+  const ExerciseDetailsPage({super.key, required Exercise this.exercise})
+    : exerciseId = null;
+
+  const ExerciseDetailsPage.byId({super.key, required String this.exerciseId})
+    : exercise = null;
+
+  factory ExerciseDetailsPage.fromRouteState({
+    required String id,
+    Object? extra,
+  }) {
+    if (extra is Exercise) {
+      return ExerciseDetailsPage(exercise: extra);
+    }
+    return ExerciseDetailsPage.byId(exerciseId: id);
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(exercise.name),
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (exercise != null) {
+      return _buildScaffold(context, exercise!);
+    }
+
+    final exercisesAsync = ref.watch(baseExercisesStreamProvider);
+    return exercisesAsync.when(
+      data: (exercises) {
+        final found = exercises.where((e) => e.id == exerciseId).firstOrNull;
+        if (found == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Exercício')),
+            body: const Center(child: Text('Exercício não encontrado.')),
+          );
+        }
+        return _buildScaffold(context, found);
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Exercício')),
+        body: const Center(child: CircularProgressIndicator()),
       ),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(title: const Text('Exercício')),
+        body: Center(child: Text('Erro ao carregar exercício: $error')),
+      ),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, Exercise currentExercise) {
+    return Scaffold(
+      appBar: AppBar(title: Text(currentExercise.name)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // GIF ou Imagem do Exercício
-            if (exercise.firstImageUrl != null)
+            if (currentExercise.firstImageUrl != null)
               Container(
                 height: 300,
                 decoration: BoxDecoration(
@@ -30,29 +72,41 @@ class ExerciseDetailsPage extends StatelessWidget {
                   color: Theme.of(context).cardColor,
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: exercise.firstImageUrl!.startsWith('assets/')
+                child: currentExercise.firstImageUrl!.startsWith('assets/')
                     ? Image.asset(
-                        exercise.firstImageUrl!,
+                        currentExercise.firstImageUrl!,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text('Substitua este arquivo vazio na pasta assets/gifs', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-                            ],
-                          ),
-                        ),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.image_not_supported,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Substitua este arquivo vazio na pasta assets/gifs',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
                       )
                     : CachedNetworkImage(
-                        imageUrl: exercise.firstImageUrl!,
+                        imageUrl: currentExercise.firstImageUrl!,
                         fit: BoxFit.contain,
-                        placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        placeholder: (context, url) =>
+                            const Center(child: CircularProgressIndicator()),
                         errorWidget: (context, url, error) => const Center(
-                          child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
               )
@@ -64,43 +118,105 @@ class ExerciseDetailsPage extends StatelessWidget {
                   color: Theme.of(context).cardColor,
                 ),
                 child: const Center(
-                  child: Icon(Icons.fitness_center, size: 60, color: Colors.grey),
+                  child: Icon(
+                    Icons.fitness_center,
+                    size: 60,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Informações
             Text(
               'Músculo Alvo',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              (exercise.primaryMuscles ?? 'N/A').toUpperCase(),
+              muscleListLabel(currentExercise.primaryMuscles),
               style: Theme.of(context).textTheme.bodyLarge,
             ),
-            
+
+            if (currentExercise.secondaryMuscles != null &&
+                currentExercise.secondaryMuscles!.trim().isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Músculos Secundários',
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                muscleListLabel(currentExercise.secondaryMuscles),
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _DetailChip(
+                  label: 'Nível',
+                  value: levelLabel(currentExercise.level),
+                ),
+                _DetailChip(
+                  label: 'Equipamento',
+                  value: equipmentLabel(currentExercise.equipment),
+                ),
+                _DetailChip(
+                  label: 'Categoria',
+                  value: categoryLabel(currentExercise.category),
+                ),
+                _DetailChip(
+                  label: 'Mecânica',
+                  value: mechanicLabel(currentExercise.mechanic),
+                ),
+                _DetailChip(
+                  label: 'Força',
+                  value: forceLabel(currentExercise.force),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 24),
-            
+
             Text(
               'Instruções',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              exercise.instructions ?? 'Nenhuma instrução disponível para este exercício.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    height: 1.5,
-                  ),
+              (currentExercise.instructions == null ||
+                      currentExercise.instructions!.trim().isEmpty)
+                  ? 'Nenhuma instrução disponível para este exercício.'
+                  : currentExercise.instructions!,
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(height: 1.5),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DetailChip extends StatelessWidget {
+  const _DetailChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text('$label: $value'),
+      visualDensity: VisualDensity.compact,
     );
   }
 }

@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    name: analyze-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4
+          cache: true
+
+      - name: Instalar dependências
+        run: flutter pub get
+
+      - name: Verificar formatação
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Análise estática
+        run: dart analyze --fatal-infos
+
+      - name: Testes com cobertura
+        run: flutter test --coverage --exclude-tags integration
+
+      - name: Publicar cobertura (lcov)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: warn
+
+      - name: Resumo de cobertura
+        if: always()
+        run: |
+          {
+            echo "## Cobertura de testes"
+            echo
+            if [ -f coverage/lcov.info ]; then
+              awk -F: '
+                /^LF:/ { lf += $2 }
+                /^LH:/ { lh += $2 }
+                END {
+                  if (lf > 0) {
+                    printf "- Linhas cobertas: %d de %d\n", lh, lf
+                    printf "- Cobertura: %.2f%%\n", (lh / lf) * 100
+                  } else {
+                    print "Nenhum dado de cobertura encontrado."
+                  }
+                }
+              ' coverage/lcov.info
+            else
+              echo "Arquivo \`coverage/lcov.info\` não encontrado."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

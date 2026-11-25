@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+.fvm/
 
 # Symbolication related
 app.*.symbols
@@ -54,3 +55,12 @@ app.*.map.json
 # serena tooling (local, not versioned)
 .serena/
 
+# Artefatos intermediários de tradução (#102)
+tool/translation/chunks/
+tool/translation/out/
+
+
+# Assinatura de release: nunca versionar (#57)
+key.properties
+*.jks
+*.keystore

@@ -4,9 +4,17 @@ import 'package:go_router/go_router.dart';
 import 'package:olimpus/features/workout/presentation/providers/workout_template_providers.dart';
 import 'package:olimpus/features/workout/presentation/widgets/template_card.dart';
 
-/// Visão reutilizável da listagem de fichas do usuário (incorporada na Home e/ou em rota própria).
+/// Visão reutilizável da listagem de fichas do usuário (incorporada na Home,
+/// na aba Treinos e na rota `/templates`).
 class TemplatesListView extends ConsumerWidget {
-  const TemplatesListView({super.key});
+  const TemplatesListView({
+    super.key,
+    this.shrinkWrap = false,
+    this.compact = false,
+  });
+
+  final bool shrinkWrap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,31 +23,48 @@ class TemplatesListView extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     return templatesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(
+      loading: () => const Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: colorScheme.error),
-              const SizedBox(height: 12),
-              Text(
-                'Erro ao carregar suas fichas: $err',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => ref.invalidate(userWorkoutTemplatesProvider),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Tentar novamente'),
-              ),
-            ],
-          ),
+          padding: EdgeInsets.all(20),
+          child: CircularProgressIndicator(),
         ),
       ),
+      error: (err, _) {
+        if (compact) {
+          return _EmptyTemplatesCard(
+            onCreatePressed: () => context.push('/templates/new'),
+          );
+        }
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+                const SizedBox(height: 12),
+                Text(
+                  'Erro ao carregar suas fichas: $err',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => ref.invalidate(userWorkoutTemplatesProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Tentar novamente'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
       data: (templates) {
         if (templates.isEmpty) {
+          if (compact) {
+            return _EmptyTemplatesCard(
+              onCreatePressed: () => context.push('/templates/new'),
+            );
+          }
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(32),
@@ -80,7 +105,11 @@ class TemplatesListView extends ConsumerWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.only(top: 8, bottom: 88),
+          shrinkWrap: shrinkWrap,
+          physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+          padding: shrinkWrap
+              ? EdgeInsets.zero
+              : const EdgeInsets.only(top: 8, bottom: 88),
           itemCount: templates.length,
           itemBuilder: (context, index) {
             final tpl = templates[index];
@@ -102,6 +131,65 @@ class TemplatesListView extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _EmptyTemplatesCard extends StatelessWidget {
+  const _EmptyTemplatesCard({required this.onCreatePressed});
+
+  final VoidCallback onCreatePressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              Icons.assignment_outlined,
+              size: 32,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nenhuma ficha criada',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Monte seu Treino A, B, C com exercícios e séries alvo.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.tonalIcon(
+              onPressed: onCreatePressed,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Criar'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

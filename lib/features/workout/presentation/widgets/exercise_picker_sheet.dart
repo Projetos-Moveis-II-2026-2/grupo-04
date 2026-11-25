@@ -1,407 +1,320 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:olimpus/features/workout/domain/entities/catalog_exercise.dart';
-import 'package:olimpus/features/workout/presentation/providers/workout_template_providers.dart';
+import 'package:olimpus/features/exercise/domain/entities/exercise_option.dart';
+import 'package:olimpus/features/workout/presentation/providers/free_workout_exercises_provider.dart';
 
-/// Abre o modal para buscar e selecionar exercícios da biblioteca (`exercise_library`).
-Future<List<CatalogExercise>?> showExercisePickerSheet(BuildContext context) {
-  return showModalBottomSheet<List<CatalogExercise>>(
+/// Exibe um bottom sheet modal com busca paginada no banco e lista lazy para
+/// seleção de exercício.
+///
+/// Retorna a opção escolhida ou `null` caso o usuário feche sem selecionar.
+Future<ExerciseOption?> showExercisePickerSheet(BuildContext context) {
+  return showModalBottomSheet<ExerciseOption>(
     context: context,
+    showDragHandle: true,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => const ExercisePickerSheet(),
+    builder: (_) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      builder: (_, controller) =>
+          _ExercisePickerSheetBody(scrollController: controller),
+    ),
   );
 }
 
-class ExercisePickerSheet extends ConsumerStatefulWidget {
-  const ExercisePickerSheet({super.key});
+class _ExercisePickerSheetBody extends ConsumerStatefulWidget {
+  const _ExercisePickerSheetBody({required this.scrollController});
+
+  final ScrollController scrollController;
 
   @override
-  ConsumerState<ExercisePickerSheet> createState() =>
-      _ExercisePickerSheetState();
+  ConsumerState<_ExercisePickerSheetBody> createState() =>
+      _ExercisePickerSheetBodyState();
 }
 
-class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
-  final TextEditingController _searchController = TextEditingController();
-  Timer? _debounce;
-  String _searchQuery = '';
-  String? _selectedMuscleGroup;
-  bool _isSyncingCatalog = false;
-  String? _syncError;
+class _ExercisePickerSheetBodyState
+    extends ConsumerState<_ExercisePickerSheetBody> {
+  static const _debounceDuration = Duration(milliseconds: 250);
+  static const double _loadMoreScrollThreshold = 200;
 
-  final List<CatalogExercise> _selected = <CatalogExercise>[];
+  final _searchController = TextEditingController();
+  Timer? _debounce;
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
-    unawaited(_syncCatalogIfNeeded());
+    widget.scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ExercisePickerSheetBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollController != widget.scrollController) {
+      oldWidget.scrollController.removeListener(_onScroll);
+      widget.scrollController.addListener(_onScroll);
+    }
   }
 
   @override
   void dispose() {
+    widget.scrollController.removeListener(_onScroll);
     _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _syncCatalogIfNeeded() async {
-    setState(() {
-      _isSyncingCatalog = true;
-      _syncError = null;
-    });
-    try {
-      await ref.read(workoutTemplateRepositoryProvider).ensureCatalogSynced();
-    } on Object catch (e) {
-      if (mounted) {
-        setState(() {
-          _syncError = e.toString();
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSyncingCatalog = false;
-        });
-      }
+  void _onScroll() {
+    if (!mounted || !widget.scrollController.hasClients) return;
+    final position = widget.scrollController.position;
+    if (!position.hasContentDimensions || !position.hasPixels) return;
+    if (position.pixels < position.maxScrollExtent - _loadMoreScrollThreshold) {
+      return;
     }
+
+    final pageState = ref.read(workoutExerciseSearchProvider(_query)).value;
+    if (pageState == null ||
+        pageState.isLoadingMore ||
+        !pageState.hasMore ||
+        pageState.loadMoreError != null) {
+      return;
+    }
+
+    unawaited(
+      ref.read(workoutExerciseSearchProvider(_query).notifier).loadMore(),
+    );
   }
 
-  void _onSearchChanged(String value) {
+  void _applyQuery(String rawQuery) {
+    final normalized = rawQuery.trim();
+    if (normalized == _query) return;
+    if (widget.scrollController.hasClients) {
+      widget.scrollController.jumpTo(0);
+    }
+    setState(() => _query = normalized);
+  }
+
+  void _onQueryChanged(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 250), () {
-      if (mounted) {
-        setState(() {
-          _searchQuery = value.trim().toLowerCase();
-        });
-      }
+    _debounce = Timer(_debounceDuration, () {
+      if (!mounted) return;
+      _applyQuery(value);
     });
   }
 
-  void _toggleSelection(CatalogExercise exercise) {
-    setState(() {
-      final index = _selected.indexWhere((e) => e.id == exercise.id);
-      if (index >= 0) {
-        _selected.removeAt(index);
-      } else {
-        _selected.add(exercise);
-      }
-    });
-  }
-
-  List<CatalogExercise> _filterExercises(List<CatalogExercise> all) {
-    return all
-        .where((exercise) {
-          final matchesQuery =
-              _searchQuery.isEmpty ||
-              exercise.name.toLowerCase().contains(_searchQuery);
-          if (!matchesQuery) return false;
-
-          if (_selectedMuscleGroup == null) return true;
-          final englishKeys =
-              catalogMuscleGroupTranslation[_selectedMuscleGroup!] ?? const [];
-          final hasPrimary = exercise.primaryMuscleList.any(
-            (m) => englishKeys.contains(m.toLowerCase()),
-          );
-          final hasSecondary =
-              exercise.secondaryMuscles != null &&
-              englishKeys.any(
-                (k) => exercise.secondaryMuscles!.toLowerCase().contains(k),
-              );
-          return hasPrimary || hasSecondary;
-        })
-        .toList(growable: false);
+  void _clearQuery() {
+    _debounce?.cancel();
+    _searchController.clear();
+    _applyQuery('');
   }
 
   @override
   Widget build(BuildContext context) {
+    final catalogReady = ref.watch(workoutCatalogReadyProvider);
     final theme = Theme.of(context);
-    final catalogAsync = ref.watch(catalogExercisesStreamProvider);
-    final groups = catalogMuscleGroupTranslation.keys.toList(growable: false);
+    final viewInsetsBottom = MediaQuery.viewInsetsOf(context).bottom;
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.88,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) {
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Adicionar Exercícios',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    tooltip: 'Fechar',
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: 'Buscar exercício por nome...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  isDense: true,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 44,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: groups.length + 1,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    final isSelected = _selectedMuscleGroup == null;
-                    return FilterChip(
-                      label: const Text('Todos'),
-                      selected: isSelected,
-                      onSelected: (_) {
-                        setState(() => _selectedMuscleGroup = null);
-                      },
-                    );
-                  }
-                  final group = groups[index - 1];
-                  final isSelected = _selectedMuscleGroup == group;
-                  return FilterChip(
-                    label: Text(group),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(
-                        () => _selectedMuscleGroup = selected ? group : null,
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            const Divider(height: 16),
-            Expanded(
-              child: catalogAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Erro ao carregar catálogo: $err'),
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
-                          onPressed: _syncCatalogIfNeeded,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Tentar novamente'),
-                        ),
-                      ],
-                    ),
+    return Padding(
+      padding: EdgeInsets.only(bottom: viewInsetsBottom),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Selecionar exercício',
+                    style: theme.textTheme.titleMedium,
                   ),
                 ),
-                data: (allExercises) {
-                  if (allExercises.isEmpty && _isSyncingCatalog) {
-                    return const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 12),
-                          Text('Sincronizando biblioteca de exercícios...'),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final filtered = _filterExercises(allExercises);
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.search_off, size: 48),
-                            const SizedBox(height: 12),
-                            Text(
-                              allExercises.isEmpty
-                                  ? (_syncError != null
-                                        ? 'Não foi possível baixar o catálogo offline.'
-                                        : 'Nenhum exercício disponível no catálogo.')
-                                  : 'Nenhum exercício encontrado para o filtro atual.',
-                              textAlign: TextAlign.center,
-                            ),
-                            if (allExercises.isEmpty) ...[
-                              const SizedBox(height: 12),
-                              OutlinedButton.icon(
-                                onPressed: _syncCatalogIfNeeded,
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Recarregar catálogo'),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  return ListView.separated(
-                    controller: scrollController,
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final ex = filtered[index];
-                      final selectedIndex = _selected.indexWhere(
-                        (s) => s.id == ex.id,
-                      );
-                      final isSelected = selectedIndex >= 0;
-
-                      return ListTile(
-                        leading: _ExerciseThumbnail(imageUrl: ex.firstImageUrl),
-                        title: Text(
-                          ex.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          [
-                            if (ex.primaryMuscles != null &&
-                                ex.primaryMuscles!.isNotEmpty)
-                              ex.primaryMuscles!,
-                            if (ex.equipment != null &&
-                                ex.equipment!.isNotEmpty)
-                              ex.equipment!,
-                          ].join(' • '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: isSelected
-                            ? CircleAvatar(
-                                radius: 14,
-                                backgroundColor: theme.colorScheme.primary,
-                                foregroundColor: theme.colorScheme.onPrimary,
-                                child: Text(
-                                  '${selectedIndex + 1}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              )
-                            : const Icon(Icons.add_circle_outline),
-                        selected: isSelected,
-                        onTap: () => _toggleSelection(ex),
-                      );
-                    },
-                  );
-                },
-              ),
+                IconButton(
+                  tooltip: 'Fechar',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _selected.isEmpty
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _searchController,
+              builder: (context, value, _) {
+                return TextField(
+                  key: const Key('free_workout_exercise_search_field'),
+                  controller: _searchController,
+                  onChanged: _onQueryChanged,
+                  onSubmitted: (submitted) {
+                    _debounce?.cancel();
+                    _applyQuery(submitted);
+                  },
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    labelText: 'Buscar exercício',
+                    hintText: 'Digite o nome do exercício...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: value.text.isEmpty
                         ? null
-                        : () => Navigator.of(context).pop(_selected),
-                    icon: const Icon(Icons.check),
-                    label: Text(
-                      _selected.isEmpty
-                          ? 'Selecione exercícios para adicionar'
-                          : 'Adicionar ${_selected.length} '
-                                '${_selected.length == 1 ? 'exercício' : 'exercícios'}',
+                        : IconButton(
+                            tooltip: 'Limpar busca',
+                            icon: const Icon(Icons.clear),
+                            onPressed: _clearQuery,
+                          ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                ),
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: switch (catalogReady) {
+              AsyncValue(isLoading: true, hasValue: false) => _buildLoading(),
+              AsyncValue(hasError: true, hasValue: false) => _buildError(
+                theme,
+                onRetry: () => ref.invalidate(workoutCatalogReadyProvider),
               ),
+              _ => _buildSearchBody(theme),
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBody(ThemeData theme) {
+    final asyncResults = ref.watch(workoutExerciseSearchProvider(_query));
+    return switch (asyncResults) {
+      AsyncValue(isLoading: true, hasValue: false) => _buildLoading(),
+      AsyncValue(:final value?) => _buildResults(context, value, theme),
+      AsyncValue(hasError: true) => _buildError(
+        theme,
+        onRetry: () => ref.invalidate(workoutExerciseSearchProvider(_query)),
+      ),
+      _ => const SizedBox.shrink(),
+    };
+  }
+
+  Widget _buildLoading() {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 12),
+          Text('Carregando catálogo…'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(ThemeData theme, {required VoidCallback onRetry}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Erro ao carregar exercícios.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonal(
+              onPressed: onRetry,
+              child: const Text('Tentar de novo'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResults(
+    BuildContext context,
+    ExerciseSearchPageState pageState,
+    ThemeData theme,
+  ) {
+    if (pageState.items.isEmpty) {
+      return Center(
+        child: Text(
+          'Nenhum exercício encontrado',
+          style: theme.textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    final hasFooter =
+        pageState.hasMore ||
+        pageState.isLoadingMore ||
+        pageState.loadMoreError != null;
+    final itemCount = pageState.items.length + (hasFooter ? 1 : 0);
+
+    return ListView.builder(
+      key: const Key('free_workout_exercise_results_list'),
+      controller: widget.scrollController,
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: itemCount,
+      itemBuilder: (context, index) {
+        if (index >= pageState.items.length) {
+          return _buildLoadMoreFooter(theme, pageState);
+        }
+        final option = pageState.items[index];
+        return ListTile(
+          title: Text(option.name),
+          onTap: () => Navigator.of(context).pop(option),
         );
       },
     );
   }
-}
 
-class _ExerciseThumbnail extends StatelessWidget {
-  const _ExerciseThumbnail({this.imageUrl});
-
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    if (imageUrl == null || imageUrl!.isEmpty) {
-      return Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+  Widget _buildLoadMoreFooter(
+    ThemeData theme,
+    ExerciseSearchPageState pageState,
+  ) {
+    if (pageState.loadMoreError != null) {
+      return Padding(
+        key: const Key('free_workout_exercise_load_more_error'),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Erro ao carregar mais exercícios.',
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              onPressed: () => ref
+                  .read(workoutExerciseSearchProvider(_query).notifier)
+                  .loadMore(),
+              child: const Text('Tentar de novo'),
+            ),
+          ],
         ),
-        child: Icon(Icons.fitness_center, color: colorScheme.onSurfaceVariant),
       );
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: CachedNetworkImage(
-        imageUrl: imageUrl!,
-        width: 48,
-        height: 48,
-        fit: BoxFit.cover,
-        placeholder: (_, _) => Container(
-          width: 48,
-          height: 48,
-          color: colorScheme.surfaceContainerHighest,
-          child: const Center(
-            child: SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-        ),
-        errorWidget: (_, _, _) => Container(
-          width: 48,
-          height: 48,
-          color: colorScheme.surfaceContainerHighest,
-          child: Icon(
-            Icons.fitness_center,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
+    return SizedBox(
+      key: const Key('free_workout_exercise_load_more'),
+      height: 56,
+      child: pageState.isLoadingMore
+          ? const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : null,
     );
   }
 }

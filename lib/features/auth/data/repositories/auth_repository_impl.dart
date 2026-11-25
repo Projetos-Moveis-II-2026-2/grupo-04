@@ -13,10 +13,7 @@ class AuthRepositoryImpl implements IAuthRepository {
     required String email,
     required String password,
   }) async {
-    final response = await _datasource.signUp(
-      email: email,
-      password: password,
-    );
+    final response = await _datasource.signUp(email: email, password: password);
     final user = response.user;
     if (user == null) {
       throw const AuthException('Signup failed: no user returned');
@@ -60,6 +57,9 @@ class AuthRepositoryImpl implements IAuthRepository {
       throw const AuthException('Failed to update password');
     }
   }
+
+  @override
+  Future<void> deleteAccount() => _datasource.deleteAccount();
 
   @override
   Stream<AppUser?> authStateChanges() {

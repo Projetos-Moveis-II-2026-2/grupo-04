@@ -6,8 +6,8 @@ import 'package:olimpus/features/auth/presentation/providers/auth_providers.dart
 import 'package:olimpus/features/workout/domain/entities/template_exercise_item.dart';
 import 'package:olimpus/features/workout/domain/entities/workout_template_entity.dart';
 import 'package:olimpus/features/workout/presentation/providers/workout_template_providers.dart';
-import 'package:olimpus/features/workout/presentation/widgets/exercise_picker_sheet.dart';
 import 'package:olimpus/features/workout/presentation/widgets/template_card.dart';
+import 'package:olimpus/features/workout/presentation/widgets/template_exercise_picker_sheet.dart';
 
 class TemplateFormPage extends ConsumerStatefulWidget {
   const TemplateFormPage({super.key, this.templateId, this.initialTemplate});
@@ -69,7 +69,7 @@ class _TemplateFormPageState extends ConsumerState<TemplateFormPage> {
   }
 
   Future<void> _onAddExercisesPressed() async {
-    final picked = await showExercisePickerSheet(context);
+    final picked = await showTemplateExercisePickerSheet(context);
     if (picked == null || picked.isEmpty) return;
 
     setState(() {

@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Necessária também em release: sem ela o app não acessa o Supabase. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="olimpus"
         android:name="${applicationName}"
