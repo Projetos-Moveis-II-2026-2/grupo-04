@@ -2,10 +2,13 @@ import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:olimpus/core/constants/app_constants.dart';
 import 'package:olimpus/core/database/app_database.dart';
 import 'package:olimpus/core/database/sync/sync_queue_service.dart';
 import 'package:olimpus/core/database/sync/sync_remote_gateway.dart';
 import 'package:olimpus/core/utils/uuid_v4.dart';
+import 'package:olimpus/features/workout/data/datasources/catalog_revision_store.dart';
+import 'package:olimpus/features/workout/data/datasources/exercise_catalog_remote_datasource.dart';
 import 'package:olimpus/features/workout/data/datasources/workout_template_local_datasource.dart';
 import 'package:olimpus/features/workout/data/repositories/workout_template_repository_impl.dart';
 import 'package:olimpus/features/workout/domain/entities/template_exercise_item.dart';
@@ -15,11 +18,32 @@ import 'package:olimpus/features/workout/domain/usecases/save_workout_template.d
 
 class _MockSyncGateway extends Mock implements SyncRemoteGateway {}
 
+class _MockCatalogRemoteDataSource extends Mock
+    implements IExerciseCatalogRemoteDataSource {}
+
+class _FakeCatalogRevisionStore implements CatalogRevisionStore {
+  _FakeCatalogRevisionStore(this.revision);
+
+  int revision;
+  int writes = 0;
+
+  @override
+  int read() => revision;
+
+  @override
+  Future<void> write(int value) async {
+    revision = value;
+    writes++;
+  }
+}
+
 void main() {
   late AppDatabase db;
   late _MockSyncGateway gateway;
   late SyncQueueService syncQueue;
   late WorkoutTemplateLocalDataSource localDataSource;
+  late _MockCatalogRemoteDataSource catalogRemoteDataSource;
+  late _FakeCatalogRevisionStore catalogRevisionStore;
   late WorkoutTemplateRepositoryImpl repository;
   late SaveWorkoutTemplate saveUseCase;
   late DeleteWorkoutTemplate deleteUseCase;
@@ -42,9 +66,13 @@ void main() {
       retryScheduler: (_, _) {},
     );
     localDataSource = WorkoutTemplateLocalDataSource(db);
+    catalogRemoteDataSource = _MockCatalogRemoteDataSource();
+    catalogRevisionStore = _FakeCatalogRevisionStore(0);
     repository = WorkoutTemplateRepositoryImpl(
       localDataSource: localDataSource,
       syncQueueService: syncQueue,
+      catalogRevisionStore: catalogRevisionStore,
+      catalogRemoteDataSource: catalogRemoteDataSource,
     );
     saveUseCase = SaveWorkoutTemplate(repository);
     deleteUseCase = DeleteWorkoutTemplate(repository);
@@ -182,4 +210,85 @@ void main() {
       expect(listA.single.name, 'Ficha do A');
     },
   );
+
+  group('ensureCatalogSynced', () {
+    ExerciseLibraryTableCompanion remoteEntry(String suffix) {
+      final id = UuidV4.generate();
+      return ExerciseLibraryTableCompanion.insert(
+        id: id,
+        remoteId: Value(id),
+        externalId: 'remote-$suffix',
+        name: 'Exercício remoto $suffix',
+        synced: const Value(true),
+        updatedAt: DateTime.now().toUtc(),
+      );
+    }
+
+    Future<void> insertUuidRows(int total, {String prefix = 'catalog'}) async {
+      final now = DateTime.now().toUtc();
+      final rows = <ExerciseLibraryTableCompanion>[
+        for (var i = 0; i < total; i++)
+          () {
+            final id = UuidV4.generate();
+            return ExerciseLibraryTableCompanion.insert(
+              id: id,
+              remoteId: Value(id),
+              externalId: '$prefix-$i',
+              name: 'Exercício $prefix $i',
+              synced: const Value(true),
+              updatedAt: now,
+            );
+          }(),
+      ];
+      await db.batch((batch) {
+        batch.insertAll(db.exerciseLibraryTable, rows);
+      });
+    }
+
+    test(
+      'revisão antiga + catálogo já baixado refaz o fetch e grava a revisão',
+      () async {
+        await db.delete(db.exerciseLibraryTable).go();
+        await insertUuidRows(876);
+        catalogRevisionStore.revision =
+            AppConstants.exerciseCatalogRevision - 1;
+        when(() => catalogRemoteDataSource.fetchCatalog())
+            .thenAnswer((_) async => [remoteEntry('a')]);
+
+        await repository.ensureCatalogSynced();
+
+        verify(() => catalogRemoteDataSource.fetchCatalog()).called(1);
+        expect(
+          catalogRevisionStore.revision,
+          AppConstants.exerciseCatalogRevision,
+        );
+        expect(catalogRevisionStore.writes, 1);
+      },
+    );
+
+    test('revisão atual + catálogo presente não refaz o fetch', () async {
+      // O setUp já inseriu 5 linhas com UUID; mais 5 atingem o mínimo de 10.
+      await insertUuidRows(5, prefix: 'extra');
+      catalogRevisionStore.revision = AppConstants.exerciseCatalogRevision;
+
+      await repository.ensureCatalogSynced();
+
+      verifyNever(() => catalogRemoteDataSource.fetchCatalog());
+      expect(catalogRevisionStore.writes, 0);
+    });
+
+    test('falha no fetch não grava a revisão', () async {
+      catalogRevisionStore.revision = AppConstants.exerciseCatalogRevision - 1;
+      when(() => catalogRemoteDataSource.fetchCatalog())
+          .thenThrow(Exception('offline'));
+
+      await expectLater(repository.ensureCatalogSynced(), throwsException);
+
+      expect(
+        catalogRevisionStore.revision,
+        AppConstants.exerciseCatalogRevision - 1,
+      );
+      expect(catalogRevisionStore.writes, 0);
+    });
+  });
 }

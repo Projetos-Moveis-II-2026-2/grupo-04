@@ -17,4 +17,10 @@ abstract final class AppConstants {
 
   /// Timeout padrão para chamadas de rede.
   static const Duration networkTimeout = Duration(seconds: 15);
+
+  /// Revisão do conteúdo remoto do catálogo de exercícios (`exercise_library`).
+  ///
+  /// Incremente sempre que o conteúdo remoto mudar, para que clientes que já
+  /// baixaram o catálogo voltem a sincronizá-lo. 2 = catálogo em pt-BR (#124).
+  static const int exerciseCatalogRevision = 2;
 }
