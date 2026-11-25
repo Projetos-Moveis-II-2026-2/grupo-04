@@ -59,3 +59,8 @@ app.*.map.json
 tool/translation/chunks/
 tool/translation/out/
 
+
+# Assinatura de release: nunca versionar (#57)
+key.properties
+*.jks
+*.keystore

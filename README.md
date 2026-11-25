@@ -165,7 +165,7 @@ flutter run
 
 ### 4. Rodar em um celular Android físico
 
-> **Use o modo debug.** O `AndroidManifest.xml` principal (`android/app/src/main/`) ainda **não declara** a permissão `INTERNET`; ela só existe nos manifests de `debug` e `profile`. Um APK de release instalado hoje não consegue acessar o Supabase.
+> **Use o modo debug.** O build de release exige a keystore de assinatura própria e falha sem o `android/key.properties` (veja [Build de produção](#build-de-produção-aab)).
 
 1. No celular, ative as **Opções do desenvolvedor** (Configurações > Sobre o telefone > toque várias vezes em "Número da versão").
 2. Em Opções do desenvolvedor, ative a **Depuração USB**.
@@ -385,13 +385,51 @@ Decisões principais:
 
 ## Build de produção (.aab)
 
-**Ainda não há keystore de release configurada** (issue [#57](https://github.com/Projetos-Moveis-II-2026-2/grupo-04/issues/57)), portanto o `.aab` de produção **não está pronto**. Hoje:
+O `applicationId` (e o `namespace`) do app Android é `br.unitins.olimpus`. O build `release` em `android/app/build.gradle.kts` é assinado com a configuração `release`, lida de `android/key.properties`. **Não há fallback para a chave de debug:** se `android/key.properties` não existir (ou estiver incompleto, ou apontar para um `.jks` inexistente), qualquer tarefa Gradle de release (por exemplo `flutter build appbundle --release`) falha com uma mensagem explicando o que falta. Debug, `flutter analyze`, testes e o CI não são afetados.
 
-- `android/app/build.gradle.kts` assina o build `release` com a chave de debug (há um `TODO` no arquivo);
-- não existe `key.properties` nem arquivo `.jks` (ambos estão no `.gitignore` do Android e nunca devem ser versionados);
-- o manifest principal não declara a permissão `INTERNET`, necessária para o app acessar o Supabase em release.
+> A keystore e o `key.properties` **nunca** devem ser versionados (já estão no `.gitignore`) nem compartilhados em chats, issues ou PRs. Este fluxo é a configuração prevista na issue [#57](https://github.com/Projetos-Moveis-II-2026-2/grupo-04/issues/57); a geração e o teste do `.aab` em um aparelho ou no teste fechado ainda precisam ser feitos por quem tem a keystore.
 
-O comando previsto na issue é `flutter build appbundle --release`, mas ele só deve ser considerado válido depois que a assinatura de release e a permissão forem configuradas. Para testar em um aparelho agora, use o APK de debug descrito em [Como executar](#como-executar).
+### 1. Gerar a keystore de upload
+
+Gere a keystore **fora do repositório** (por exemplo, em um diretório seguro do seu usuário), com o alias `upload`:
+
+```bash
+keytool -genkey -v -keystore <caminho-seguro>/upload-keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+O `keytool` vem com o JDK e pergunta as senhas e os dados do certificado. Anote as senhas em um gerenciador de senhas.
+
+### 2. Criar o `android/key.properties`
+
+Crie o arquivo `android/key.properties` (ignorado pelo Git) com este formato, trocando os placeholders pelos seus valores:
+
+```properties
+storePassword=<senha-da-keystore>
+keyPassword=<senha-da-chave>
+keyAlias=upload
+storeFile=<caminho-absoluto-para>/upload-keystore.jks
+```
+
+Use um caminho absoluto em `storeFile` (um caminho relativo é resolvido a partir de `android/app/`).
+
+### 3. Fazer backup da keystore
+
+Guarde uma cópia do `.jks` e das senhas em local seguro e separado (gerenciador de senhas ou cofre da equipe). Sem a chave de upload, é preciso pedir o reset da chave de upload ao Google Play. O uso do **Play App Signing** é recomendado: o Google guarda a chave de assinatura final e você assina o envio apenas com a chave de upload.
+
+### 4. Definir a versão
+
+`versionCode` e `versionName` do app Android vêm do campo `version` do [`pubspec.yaml`](pubspec.yaml), no formato `versionName+versionCode` (por exemplo, `1.0.0+1`). Incremente o número após o `+` a cada envio à Play Store, pois ele não pode se repetir.
+
+### 5. Gerar o `.aab`
+
+```bash
+flutter build appbundle --release
+```
+
+O arquivo é gerado em `build/app/outputs/bundle/release/app-release.aab`. O R8 (minificação) já fica ativo no build de release por padrão.
+
+Para testar em um aparelho sem a keystore, use o APK de debug descrito em [Como executar](#como-executar).
 
 ---
 
