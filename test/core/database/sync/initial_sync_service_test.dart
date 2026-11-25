@@ -27,6 +27,16 @@ PullSnapshot _snapshot() => PullSnapshot(
       'updated_at': '2026-09-01T10:00:00.000Z',
     },
   ],
+  templateExercises: [
+    {
+      'id': 'tex-1',
+      'template_id': 'tpl-1',
+      'exercise_id': 'ex-1',
+      'sort_order': 0,
+      'target_sets': 4,
+      'target_reps': 12,
+    },
+  ],
   workoutSessions: [
     {
       'id': 'ses-1',
@@ -87,6 +97,13 @@ void main() {
     await service.pullInitial();
 
     expect(await db.select(db.workoutTemplates).get(), hasLength(1));
+    final tplExercises = await db.select(db.templateExercises).get();
+    expect(tplExercises, hasLength(1));
+    expect(tplExercises.single.id, 'tex-1');
+    expect(tplExercises.single.sortOrder, 0);
+    expect(tplExercises.single.targetSets, 4);
+    expect(tplExercises.single.targetReps, 12);
+    expect(tplExercises.single.synced, isTrue);
     expect(await db.select(db.workoutSessions).get(), hasLength(1));
     final sets = await db.select(db.exerciseSets).get();
     expect(sets.single.id, 'set-r1');

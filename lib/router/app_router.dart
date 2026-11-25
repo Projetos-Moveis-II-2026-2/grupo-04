@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/auth/presentation/pages/confirmation_pending_page.dart';
 import '../features/auth/presentation/pages/delete_account_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
@@ -11,14 +12,16 @@ import '../features/auth/presentation/pages/register_page.dart';
 import '../features/auth/presentation/pages/reset_password_page.dart';
 import '../features/auth/presentation/pages/settings_page.dart';
 import '../features/auth/presentation/pages/splash_page.dart';
-import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/exercise/presentation/pages/exercise_details_page.dart';
 import '../features/exercise/presentation/pages/exercise_library_page.dart';
 import '../features/profile/presentation/pages/onboarding_page.dart';
 import '../features/profile/presentation/providers/profile_providers.dart';
 import '../features/progress/presentation/pages/progress_page.dart';
 import '../features/water/presentation/pages/water_history_page.dart';
+import '../features/workout/domain/entities/workout_template_entity.dart';
 import '../features/workout/presentation/pages/free_workout_page.dart';
+import '../features/workout/presentation/pages/template_form_page.dart';
+import '../features/workout/presentation/pages/templates_page.dart';
 import '../features/workout/presentation/pages/workout_list_page.dart';
 import 'scaffold_with_nav_bar.dart';
 
@@ -225,6 +228,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/water',
         builder: (context, state) => const WaterHistoryPage(),
+      ),
+      GoRoute(
+        path: '/templates',
+        builder: (context, state) => const TemplatesPage(),
+      ),
+      GoRoute(
+        path: '/templates/new',
+        builder: (context, state) => const TemplateFormPage(),
+      ),
+      GoRoute(
+        path: '/templates/:id/edit',
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          final extra = state.extra;
+          return TemplateFormPage(
+            templateId: id,
+            initialTemplate: extra is WorkoutTemplateEntity ? extra : null,
+          );
+        },
       ),
     ],
   );
