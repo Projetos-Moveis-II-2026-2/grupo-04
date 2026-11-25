@@ -6,6 +6,7 @@ import '../../domain/entities/exercise.dart';
 import '../providers/exercise_providers.dart';
 import '../utils/exercise_labels.dart';
 import '../widgets/add_to_template_sheet.dart';
+import '../widgets/exercise_motion_image.dart';
 
 class ExerciseDetailsPage extends ConsumerWidget {
   final Exercise? exercise;
@@ -74,7 +75,7 @@ class ExerciseDetailsPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _ImageGallery(imageUrls: currentExercise.imageUrlList),
+            _ImageGallery(exercise: currentExercise),
 
             const SizedBox(height: 24),
 
@@ -148,61 +149,92 @@ class ExerciseDetailsPage extends ConsumerWidget {
   }
 }
 
-/// Galeria horizontal das imagens do exercício (posições 0/1 do dataset).
-///
-/// Imagens remotas usam [CachedNetworkImage] para ficarem em cache em disco.
-class _ImageGallery extends StatefulWidget {
-  const _ImageGallery({required this.imageUrls});
+const _galleryImageError = Center(
+  child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+);
 
-  final List<String> imageUrls;
+class _ImageGallery extends StatelessWidget {
+  const _ImageGallery({required this.exercise});
+
+  final Exercise exercise;
 
   @override
-  State<_ImageGallery> createState() => _ImageGalleryState();
+  Widget build(BuildContext context) {
+    final urls = exercise.imageUrlList;
+    final motionUrl = ExerciseMotionImage.motionUrlFor(
+      exercise.externalId,
+      urls,
+    );
+    final showMotion =
+        motionUrl != null && !MediaQuery.disableAnimationsOf(context);
+
+    Widget exerciseImage({required bool animate}) => ExerciseMotionImage(
+      exercise: exercise,
+      fit: BoxFit.contain,
+      animate: animate,
+      fallback: const Center(
+        child: Icon(Icons.fitness_center, size: 60, color: Colors.grey),
+      ),
+      errorFallback: _galleryImageError,
+    );
+
+    return _GalleryPager(
+      key: ValueKey((exercise.id, exercise.imageUrls, showMotion)),
+      images: [
+        if (showMotion)
+          Semantics(
+            label: 'Demonstração do movimento',
+            child: exerciseImage(animate: true),
+          ),
+        exerciseImage(animate: false),
+        for (final url in urls.skip(1))
+          if (url != motionUrl) _GalleryImage(url: url),
+      ],
+    );
+  }
 }
 
-class _ImageGalleryState extends State<_ImageGallery> {
+class _GalleryPager extends StatefulWidget {
+  const _GalleryPager({super.key, required this.images});
+
+  final List<Widget> images;
+
+  @override
+  State<_GalleryPager> createState() => _GalleryPagerState();
+}
+
+class _GalleryPagerState extends State<_GalleryPager> {
   int _current = 0;
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = Theme.of(context).cardColor;
-    final urls = widget.imageUrls;
-
-    if (urls.isEmpty) {
-      return Container(
-        height: 300,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: cardColor,
-        ),
-        child: const Center(
-          child: Icon(Icons.fitness_center, size: 60, color: Colors.grey),
-        ),
-      );
-    }
+    final images = widget.images;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
           height: 300,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: cardColor,
+            color: Theme.of(context).cardColor,
           ),
           clipBehavior: Clip.antiAlias,
-          child: PageView.builder(
-            itemCount: urls.length,
-            onPageChanged: (index) => setState(() => _current = index),
-            itemBuilder: (context, index) => _GalleryImage(url: urls[index]),
-          ),
+          child: images.length == 1
+              ? images.single
+              : PageView.builder(
+                  itemCount: images.length,
+                  onPageChanged: (index) => setState(() => _current = index),
+                  itemBuilder: (context, index) => images[index],
+                ),
         ),
-        if (urls.length > 1) ...[
+        if (images.length > 1) ...[
           const SizedBox(height: 8),
           Row(
             key: const Key('exercise-gallery-indicator'),
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              for (var i = 0; i < urls.length; i++)
+              for (var i = 0; i < images.length; i++)
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -234,20 +266,7 @@ class _GalleryImage extends StatelessWidget {
       return Image.asset(
         url,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-              SizedBox(height: 8),
-              Text(
-                'Substitua este arquivo vazio na pasta assets/gifs',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
+        errorBuilder: (context, error, stackTrace) => _galleryImageError,
       );
     }
     return CachedNetworkImage(
@@ -255,9 +274,7 @@ class _GalleryImage extends StatelessWidget {
       fit: BoxFit.contain,
       placeholder: (context, url) =>
           const Center(child: CircularProgressIndicator()),
-      errorWidget: (context, url, error) => const Center(
-        child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-      ),
+      errorWidget: (context, url, error) => _galleryImageError,
     );
   }
 }

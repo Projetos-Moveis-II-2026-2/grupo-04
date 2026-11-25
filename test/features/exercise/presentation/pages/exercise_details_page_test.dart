@@ -169,7 +169,7 @@ void main() {
         id: 'ex-3',
         externalId: 'asset_ex',
         name: 'Remada Curvada',
-        imageUrls: 'assets/gifs/inexistente.gif',
+        imageUrls: 'assets/inexistente.webp',
         synced: true,
         updatedAt: now,
       );
@@ -178,10 +178,6 @@ void main() {
       await tester.pumpAndSettleBounded();
 
       expect(find.byIcon(Icons.image_not_supported), findsOneWidget);
-      expect(
-        find.text('Substitua este arquivo vazio na pasta assets/gifs'),
-        findsOneWidget,
-      );
     });
     testWidgets(
       'exibe instruções numeradas e chips de músculos e equipamento',
