@@ -15,6 +15,13 @@ Future<void> main() async {
   await Supabase.initialize(
     url: ApiEndpoints.supabaseUrl,
     publishableKey: ApiEndpoints.supabasePublishableKey,
+    // Explícito (#84): PKCE nos links de confirmação/recuperação e renovação
+    // automática do JWT (~1h) com rotação do refresh token. A sessão é
+    // persistida no armazenamento local padrão e restaurada no próximo boot.
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+      autoRefreshToken: true,
+    ),
   );
 
   final prefs = await SharedPreferences.getInstance();
